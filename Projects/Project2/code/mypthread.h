@@ -21,6 +21,17 @@
 #include <sys/time.h>
 #include <time.h>
 #include <stdint.h>
+#include <ucontext.h> //makecontext()
+#include <signal.h> //signal stack/sigaction()
+
+//thread states, add more if necessary
+typedef enum status{
+    READY, SCHEDULED, BLOCKED, FINISHED
+}status;
+
+#define QUANTUM 10 //10 ms for quantum window?
+#define stackSize 16384 //4KiB for user thread stack
+
 
 typedef uint mypthread_t;
 
@@ -34,6 +45,12 @@ typedef struct threadControlBlock {
 	// And more ...
 
 	// YOUR CODE HERE
+    pthread_t* threadID; //pointer to thread
+    status threadStatus;//ready,scheduled,blocked
+    ucontext_t threadContext; //context for thread
+    int elapsedQuantums; //number of quantums thread has run
+    //add priority?
+
 } tcb;
 
 /* mutex struct definition */
@@ -41,12 +58,33 @@ typedef struct mypthread_mutex_t {
 	/* add something here */
 
 	// YOUR CODE HERE
+    int mutexID; //mutex identifier
+    int isLocked; //0 for false/not locked, 1 for true/locked
 } mypthread_mutex_t;
 
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
 
 // YOUR CODE HERE
+/*
+    Things to make:
+    Queue for threads
+    Linked list nodes for TCBs?
+*/
+
+typedef struct threadNode{
+    tcb* threadControlBlock;
+
+    struct threadNode* next;
+    struct threadNode* prev;
+
+} threadNode;
+ 
+typedef struct threadQueue{
+    struct threadNode* head;
+    struct threadNode* tail;
+
+} threadQueue;
 
 
 /* Function Declarations: */

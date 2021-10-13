@@ -9,6 +9,8 @@
 // INITAILIZE ALL YOUR VARIABLES HERE
 // YOUR CODE HERE
 
+threadQueue* tQueue = NULL;
+threadNode* currRunningThread = NULL;
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
@@ -18,7 +20,16 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
        // allocate space of stack for this thread to run
        // after everything is all set, push this thread int
        // YOUR CODE HERE
+    
+    tcb* newTCB = (tcb*) malloc(sizeof(tcb));
+    newTCB->threadID = *thread;
+    newTCB->threadStatus = READY;
+    newTCB->elapsedQuantums = 0;
 
+    //check if queue is empty/null
+
+    
+    
     return 0;
 };
 
@@ -27,7 +38,7 @@ int mypthread_yield() {
 
 	// change thread state from Running to Ready
 	// save context of this thread to its thread control block
-	// wwitch from thread context to scheduler context
+	// switch from thread context to scheduler context
 
 	// YOUR CODE HERE
 	return 0;
@@ -68,6 +79,8 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex) {
         // context switch to the scheduler thread
 
         // YOUR CODE HERE
+
+        //use test and set?
         return 0;
 };
 
@@ -104,12 +117,14 @@ static void schedule() {
 	// 		sched_mlfq();
 
 	// YOUR CODE HERE
+    //not req to implement MLFQ for 416
 
 // schedule policy
 #ifndef MLFQ
 	// Choose STCF
 #else
 	// Choose MLFQ
+    //not req for 416
 #endif
 
 }
@@ -128,8 +143,65 @@ static void sched_mlfq() {
 	// (feel free to modify arguments and return types)
 
 	// YOUR CODE HERE
+    //not required to implement for 416
 }
 
 // Feel free to add any other functions you need
 
 // YOUR CODE HERE
+
+
+/*
+    Frees thread Nodes, incomplete.
+*/
+void freeThreadNodes(struct threadNode* head){
+    if(head == NULL){
+        return;
+    }
+    struct threadNode* next = head->next;
+    
+    //free head's TCB, stack space, etc
+
+    //free thread stack space
+    free(head->threadControlBlock->threadContext.uc_stack.ss_sp);
+    //free node
+    free(head);
+    freeThreadNodes(next);
+}
+
+/*
+    Prints thread nodes, incomplete
+*/
+void printThreadNodes(struct threadNode* head){
+    if(head == 0){
+        return;
+    }
+    int count = 1;
+    struct threadNode* ptr = head;
+    while(ptr != NULL){
+    
+        printf("Node %d.\n", count);
+        printf("Thread ID: %d\n", ptr->threadControlBlock->threadID);
+        printf("Thread Status: %s\n", ptr->threadControlBlock->threadStatus);
+        printf("Thread Elapsed Quantums: %d\n", ptr->threadControlBlock->elapsedQuantums);
+
+        ptr = ptr->next;
+    }
+}
+
+/*
+    Locates a specific thread given a threadID and the head of the queue/linked list.
+*/
+struct threadNode* findThreadNode(int threadID, struct threadNode* head){
+    
+    threadNode* ptr = head;
+
+    while(ptr != NULL){
+        if(ptr->threadControlBlock->threadID == threadID){
+            //match found
+            return ptr;
+        }
+    }
+    //not found
+    return -1;
+}
