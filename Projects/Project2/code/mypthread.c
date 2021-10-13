@@ -1,8 +1,8 @@
 // File:	mypthread.c
 
-// List all group member's name:
-// username of iLab:
-// iLab Server:
+// List all group member's name: Craig Li, Prerak Patel
+// username of iLab: craigli, pjp179
+// iLab Server: rm.cs.rutgers.edu
 
 #include "mypthread.h"
 
@@ -11,6 +11,8 @@
 
 threadQueue* tQueue = NULL;
 threadNode* currRunningThread = NULL;
+ucontext_t mainContext; //context of parent/main?
+ucontext_t threadContext; //context of thread?
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
@@ -21,6 +23,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
        // after everything is all set, push this thread int
        // YOUR CODE HERE
     
+    //create TCB
     tcb* newTCB = (tcb*) malloc(sizeof(tcb));
     newTCB->threadID = *thread;
     newTCB->threadStatus = READY;
@@ -28,7 +31,34 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
     //check if queue is empty/null
 
+    if(tQueue == NULL){
+        tQueue = (threadQueue*) malloc(sizeof(threadQueue));
+        tQueue->head = newTCB;
+        tQueue->tail = newTCB;
     
+        getcontext(&mainContext);
+        mainContext.uc_stack.ss_sp = malloc(STACKSIZE); //create stack
+        if(mainContext.uc_stack.ss_sp <= 0){
+            //memory not allocated, error
+            perror("Memory Not Allocated for Main/Parent Stack, exiting\n");
+            exit(EXIT_FAILURE);
+        }
+        mainContext.uc_link = 0; //no parent, main process
+        //uc_link is where we return to after thread completes
+        mainContext.uc_stack.ss_flags = 0; //no flags currently
+
+
+
+    }
+    else{
+        //queue not null, insert threadNode into queue
+        //set new node to end of list, and change tail pointer
+
+        //this is for FIFO, work on other criteria for when we 
+        //implement STCF
+        tQueue->tail->next = newTCB;
+        tQueue->tail = tQueue->tail->next;
+    }
     
     return 0;
 };

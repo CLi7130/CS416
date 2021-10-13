@@ -27,10 +27,14 @@
 //thread states, add more if necessary
 typedef enum status{
     READY, SCHEDULED, BLOCKED, FINISHED
+    //ready = 0
+    //scheduled = 1
+    //blocked = 2
+    //finished = 3
 }status;
 
 #define QUANTUM 10 //10 ms for quantum window?
-#define stackSize 16384 //4KiB for user thread stack
+#define STACKSIZE 16384 //4KiB for user thread stack
 
 
 typedef uint mypthread_t;
@@ -50,6 +54,7 @@ typedef struct threadControlBlock {
     ucontext_t threadContext; //context for thread
     int elapsedQuantums; //number of quantums thread has run
     //add priority?
+    int priority; //0 for top priority, 1 is next highest, etc
 
 } tcb;
 
@@ -60,6 +65,8 @@ typedef struct mypthread_mutex_t {
 	// YOUR CODE HERE
     int mutexID; //mutex identifier
     int isLocked; //0 for false/not locked, 1 for true/locked
+    //use with __test_and_set()?
+
 } mypthread_mutex_t;
 
 /* define your data structures here: */
@@ -72,6 +79,7 @@ typedef struct mypthread_mutex_t {
     Linked list nodes for TCBs?
 */
 
+//TCB goes into a threadNode, which is put into threadQueue
 typedef struct threadNode{
     tcb* threadControlBlock;
 
@@ -80,6 +88,7 @@ typedef struct threadNode{
 
 } threadNode;
  
+ //container for all threadNodes
 typedef struct threadQueue{
     struct threadNode* head;
     struct threadNode* tail;
