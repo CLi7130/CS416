@@ -1,5 +1,5 @@
-// Student name:
-// Ilab machine used:
+// Student name: Prerak Patel
+// Ilab machine used: kill.cs.rutgers.edu
 
 #include <signal.h>
 #include <stdio.h>
@@ -10,8 +10,14 @@
 void floating_point_exception_handler(int signum) {
 
 	printf("I am slain!\n");
+	void *address = &signum;
 
-	/* Do your tricks here */
+	address += 0xCC;
+	*(int *)address += 0x3;
+
+	/* Do your tricks here*/
+	
+	
 }
 
 int main() {
