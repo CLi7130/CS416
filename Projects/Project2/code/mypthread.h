@@ -34,7 +34,8 @@ typedef enum status{
 }status;
 
 #define QUANTUM 10 //10 ms for quantum window?
-#define STACKSIZE 16384 //4KiB for user thread stack
+#define STACKSIZE 32000 //32KB for user thread stack = 32000 bytes
+// <100 threads used for grading according to benchmark readme?
 
 
 typedef uint mypthread_t;
