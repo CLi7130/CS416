@@ -1,0 +1,134 @@
+
+
+
+
+
+
+Program:
+
+1       // Student name: Craig Li
+2       // Ilab machine used: rm.cs.rutgers.edu
+3
+4       #include <signal.h>
+5       #include <stdio.h>
+6       #include <stdlib.h>
+7       #include <unistd.h>
+8
+9       void floating_point_exception_handler(int signum) {
+10          
+11              printf("I am slain!\n");
+12
+13              /* Do your tricks here */
+14
+15          //char* stackPointer = ((char*) &signum) + 0xCC;
+16          //*stackPointer += 0x6;
+17
+18          /*
+19              can also be done using an int* via:
+20              int* stackPointer = &signum + (0xCC / 4);
+21              *stackPointer += 0x6;
+22          */
+23
+24      }
+25
+26      int main() {
+27
+28              int x = 5, y = 0, z = 0;
+29
+30              signal(SIGFPE, floating_point_exception_handler);
+31
+32              z = x / y;
+33
+34              printf("I live again!\n");
+35
+36              return 0;
+37      }
+
+Dump of assembler code for function main:
+   0x0000000000401174 <+0>:     endbr64 
+   0x0000000000401178 <+4>:     push   %rbp
+   0x0000000000401179 <+5>:     mov    %rsp,%rbp
+   0x000000000040117c <+8>:     sub    $0x10,%rsp
+   0x0000000000401180 <+12>:    movl   $0x5,-0xc(%rbp)
+   0x0000000000401187 <+19>:    movl   $0x0,-0x8(%rbp)
+   0x000000000040118e <+26>:    movl   $0x0,-0x4(%rbp)
+   0x0000000000401195 <+33>:    lea    -0x46(%rip),%rsi        # 0x401156 <floating_point_exception_handler>
+   0x000000000040119c <+40>:    mov    $0x8,%edi
+   0x00000000004011a1 <+45>:    callq  0x401060 <signal@plt>
+   0x00000000004011a6 <+50>:    mov    -0xc(%rbp),%eax
+   0x00000000004011a9 <+53>:    cltd   
+=> 0x00000000004011aa <+54>:    idivl  -0x8(%rbp)
+   0x00000000004011ad <+57>:    mov    %eax,-0x4(%rbp)
+   0x00000000004011b0 <+60>:    lea    0xe59(%rip),%rdi        # 0x402010
+   0x00000000004011b7 <+67>:    callq  0x401050 <puts@plt>
+   0x00000000004011bc <+72>:    mov    $0x0,%eax
+   0x00000000004011c1 <+77>:    leaveq 
+   0x00000000004011c2 <+78>:    retq   
+End of assembler dump.
+
+(gdb) info frame
+Stack level 0, frame at 0x7fffffffde60:
+ rip = 0x4011aa in main (sigHandler.c:32); saved rip = 0x7ffff7dc20b3
+ source language c.
+ Arglist at 0x7fffffffde38, args: 
+ Locals at 0x7fffffffde38, Previous frame's sp is 0x7fffffffde60
+ Saved registers:
+  rbp at 0x7fffffffde50, rip at 0x7fffffffde58
+
+  (gdb) disass
+Dump of assembler code for function floating_point_exception_handler:
+=> 0x0000000000401156 <+0>:     endbr64 
+   0x000000000040115a <+4>:     push   %rbp
+   0x000000000040115b <+5>:     mov    %rsp,%rbp
+   0x000000000040115e <+8>:     sub    $0x10,%rsp
+   0x0000000000401162 <+12>:    mov    %edi,-0x4(%rbp)
+   0x0000000000401165 <+15>:    lea    0xe98(%rip),%rdi        # 0x402004
+   0x000000000040116c <+22>:    callq  0x401050 <puts@plt>
+   0x0000000000401171 <+27>:    nop
+   0x0000000000401172 <+28>:    leaveq 
+   0x0000000000401173 <+29>:    retq   
+End of assembler dump.
+
+(gdb) p &signum
+$1 = (int *) 0x7fffffffd76c
+
+(gdb) info frame
+Stack level 0, frame at 0x7fffffffd780:
+ rip = 0x401156 in floating_point_exception_handler (sigHandler.c:9); saved rip = 0x7ffff7de1210
+ called by frame at 0x7fffffffde40
+ source language c.
+ Arglist at 0x7fffffffd770, args: signum=32767
+ Locals at 0x7fffffffd770, Previous frame's sp is 0x7fffffffd780
+ Saved registers:
+  rip at 0x7fffffffd778
+
+(gdb) bt
+#0  floating_point_exception_handler (signum=8) at sigHandler.c:9
+#1  <signal handler called>
+#2  0x00000000004011aa in main () at sigHandler.c:32
+
+  (gdb) 
+<signal handler called>
+(gdb) disass
+Dump of assembler code for function __restore_rt:
+=> 0x00007ffff7de1210 <+0>:     mov    $0xf,%rax
+   0x00007ffff7de1217 <+7>:     syscall 
+   0x00007ffff7de1219 <+9>:     nopl   0x0(%rax)
+End of assembler dump.
+(gdb) info frame
+Stack level 0, frame at 0x7fffffffde40:
+ rip = 0x7ffff7de1210 in __restore_rt; saved rip = 0x4011aa
+ called by frame at 0x7fffffffde60
+ Arglist at unknown address.
+ Locals at unknown address, Previous frame's sp at 0x7fffffffd820
+ Saved registers:
+  rax at 0x7fffffffd810, rbx at 0x7fffffffd800, rcx at 0x7fffffffd818, rdx at 0x7fffffffd808, rsi at 0x7fffffffd7f0, rdi at 0x7fffffffd7e8, rbp at 0x7fffffffd7f8, r8 at 0x7fffffffd7a8, r9 at 0x7fffffffd7b0, r10 at 0x7fffffffd7b8,
+  r11 at 0x7fffffffd7c0, r12 at 0x7fffffffd7c8, r13 at 0x7fffffffd7d0, r14 at 0x7fffffffd7d8, r15 at 0x7fffffffd7e0, rip at 0x7fffffffd828
+(gdb) x/a 0x7fffffffd828
+0x7fffffffd828: 0x4011aa <main+54>
+
+0x7fffffffd828 = location of program counter?
+ + 6 = 7FFFFFFFD82B //location of next valid instruction?
+0x7fffffffd75c = signum address
+
+0x7fffffffd828 - 0x7fffffffd75c = 0xCC = 204
