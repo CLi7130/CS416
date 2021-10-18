@@ -10,7 +10,7 @@
 #define _GNU_SOURCE
 
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_MYTHREAD macro */
-#define USE_MYTHREAD 1
+//#define USE_MYTHREAD 1
 
 /* include lib header files that you need here: */
 #include <unistd.h>
@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <ucontext.h> //makecontext()
 #include <signal.h> //signal stack/sigaction()
+#include <string.h>
 
 //thread states, add more if necessary
 typedef enum status{
@@ -41,7 +42,7 @@ typedef enum status{
 // <100 threads used for grading according to benchmark readme?
 
 
-#ifdef STCF
+#ifdef PJSF
     #define SCHEDULE STCF
 #else
     #define SCHEDULE FIFO 
@@ -65,6 +66,9 @@ typedef struct threadControlBlock {
     status threadStatus;//ready,scheduled,blocked
     ucontext_t threadContext; //context for thread
     int elapsedQuantums; //number of quantums thread has run
+    int isYielded; //flag for whether thread is yielded,
+                    // skip thread unless it is last one left?
+
     //add priority? could base priority off of elapsedQuantums
     //int priority; //0 for top priority, 1 is next highest, etc
 
@@ -133,6 +137,14 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex);
 
 /* Handles SIGALRM*/
 static void SIGALRM_Handler();
+
+static void sched_fifo();
+static void schedule();
+void freeThreadNode(threadNode* deleteNode);
+void freeThreadNodes(threadNode* head);
+void printThreadQueue(struct threadQueue* tempQueue);
+struct threadNode* getThreadNode(int threadID, struct threadNode* head);
+void removeThreadNode(threadNode* findThreadNode);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t
