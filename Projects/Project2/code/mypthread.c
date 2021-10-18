@@ -15,13 +15,38 @@ threadNode* currRunningThread = NULL; //currently running thread
 ucontext_t mainContext; //context of parent/main?
 ucontext_t schedulerContext; //context of scheduler
 int numThreads = 0;
-int ignoreSIGALRM = 0;
+int ignoreSIGALRM = 0; //flag to avoid interrupt
 struct itimerval timerValue;
+struct sigaction sigAction;
+mypthread_mutex_t mutexLock;
 
+/*
+    Threadwrapper function for use with threads to change state when done
+*/
+void threadWrapper(void* arg, void*(*function)(void*), int threadID,
+                    threadQueue* tQueue){
+    /*
+    void thread_wrapper_func(thread_func) {
 
+        tcb->status = RUNNING;
+        thread_func();
+        tcb->status = DONE;
+    */
+   //find threadID, set threadStatus to RUNNING
+   threadNode* runningThread = getThreadNode(threadID, tQueue->head);
+   runningThread->threadControlBlock->threadStatus = RUNNING;
+   //void* theadFunction = (*function)(arg);
+   function(arg);
+   //find thread ID, set threadStatus to FINISHED
+   runningThread->threadControlBlock->threadStatus = FINISHED;
+
+}
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
                       void *(*function)(void*), void * arg) {
+        //void *(*function)(void*) - 3rd arg
+        //change args to include threadwrapper? see above
+
        // create Thread Control Block
        // create and initialize the context of this thread
        // allocate space of stack for this thread to run
@@ -34,9 +59,11 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         2. create/get thread context
             2a. during pthread_create, makecontext() will be used, we need to 
                 update the context structure before that
-        3. Create Runqueue
+        3. Create sighandler
+        4. initialize timer
+        4. Create Runqueue
             3a. once thread context is set, add thread to scheduler runqueue (linked list/queue)
-        4. make threadwrapper function to change thread state after execution? check piazza
+        5. make threadwrapper function to change thread state after execution? check piazza
 
 
         create main_context
@@ -49,24 +76,13 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     ignoreSIGALRM = 1;
     
     *thread = ++numThreads; //change value for every new thread
-    
-    //create TCB
-    tcb* newTCB = malloc(sizeof(tcb));
-    newTCB->threadID = *thread;
-    newTCB->threadStatus = READY;
-    newTCB->elapsedQuantums = 0;
-
-    //insert tcb into new threadnode
-    threadNode* newThread = malloc(sizeof(threadNode));
-    newThread->threadControlBlock = newTCB;
-    newThread->next = NULL;
-    newThread->prev = NULL;
 
     //check if queue is empty/null
 
     if(tQueue == NULL){
         //should go through this on first run of pthread_create
-
+        //initialize timer, sighandler, contexts
+        //initialize mutexes here?
         //initialize sigALRM timer
         timerValue.it_value.tv_sec = QUANTUM / 1000;
         //convert seconds to ms by dividing by 1000
@@ -74,6 +90,22 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         //convert microseconds to milliseconds by multiplying by 1000
         timerValue.it_interval = timerValue.it_value;
         //set interval of timer, have to repeat this when sigalarm is called
+
+        //initialize sigAction to 0
+        memset(&sigAction, 0, sizeof(struct sigaction));
+        //set sa_mask to empty set
+        sigemptyset(&(sigAction.sa_mask));
+
+        //set sigAction handler to user defined SIGARLM_handler
+        sigAction.sa_handler = SIGALRM_Handler;
+        if(sigaction(SIGALRM, &sigAction, NULL) == -1){
+            //signal handler/sigaction failed?
+            perror("SIGACTION failed\n");
+            exit(EXIT_FAILURE);
+        }
+
+        //call handler to start timer?
+        SIGALRM_Handler();
 
         //queue is empty/Null, make new queue
         tQueue = malloc(sizeof(threadQueue));
@@ -91,28 +123,119 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
             exit(EXIT_FAILURE);
         }
 
+        tcb* mainThreadTCB = malloc(sizeof(tcb));
+        mainThreadTCB->threadID = *thread;
+        mainThreadTCB->threadStatus = READY; 
+        mainThreadTCB->elapsedQuantums = 0;
+
+        threadNode* mainThread = malloc(sizeof(threadNode));
+        mainThread->threadControlBlock = mainThreadTCB;
+        mainThread->next = NULL;
+        mainThread->prev = NULL;
+
         mainContext.uc_stack.ss_size = STACKSIZE; //set stack size
         mainContext.uc_link = 0; //no parent?, main process
         //uc_link is where we return to after thread completes
         mainContext.uc_stack.ss_flags = 0;  //no flags on creation
-        
+
+        if(getcontext(&schedulerContext) == -1){
+            error("Initializing Scheduler Context Failed.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        schedulerContext.uc_stack.ss_sp = malloc(STACKSIZE);
+
+        if(schedulerContext.uc_stack.ss_sp <= 0){
+            //memory allocation error for context
+            perror("Memory Not allocated for Scheduler Context\n");
+            exit(EXIT_FAILURE);
+        }
+
+        //return after scheduler to main? could set link to 0
+        schedulerContext.uc_link = 0; //&mainContext;
+        schedulerContext.uc_stack.ss_size = STACKSIZE;
+        schedulerContext.uc_stack.ss_flags = 0;
+
         //make context for scheduler here
         /*
             make threadNode for main? -> make tcb, set  threadnode->threadControlBlock, put into scheduler so that we can return to main once all threads finish?
         */
-        makecontext(&schedulerContext, (void*) &schedule, 0);
+
+        makecontext(&schedulerContext, (void*) &schedule, 0); 
     }
 
-    
+    //create TCB
+    tcb* newTCB = malloc(sizeof(tcb));
+    newTCB->threadID = *thread;
+    newTCB->threadStatus = READY;
+    newTCB->elapsedQuantums = 0;
+
+    //get context for new thread
+    ucontext_t newThreadContext;
+    getcontext(&newThreadContext);
+    if(getcontext(&newThreadContext) == -1){
+        error("Initializing New Thread Context Failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    newThreadContext.uc_stack.ss_sp = malloc(STACKSIZE);
+    if(newThreadContext.uc_stack.ss_sp <= 0){
+        fprintf("Memory not allocated for new thread: %d (%d)\n",
+                newTCB->threadID, numThreads);
+        exit(EXIT_FAILURE);
+    }
+
+    //link to exit, when thread is done, cleanup and change status to done
+    newThreadContext.uc_link = &mypthread_exit;
+    newThreadContext.uc_stack.ss_size = STACKSIZE;
+    newThreadContext.uc_stack.ss_flags = 0;
+
+    //set new thread context to TCB
+    newTCB->threadContext = newThreadContext;
+
+    //insert tcb into new threadnode
+    threadNode* newThreadNode = malloc(sizeof(threadNode));
+    newThreadNode->threadControlBlock = newTCB;
+    newThreadNode->next = NULL;
+    newThreadNode->prev = NULL;
+
     //queue not null, insert threadNode into queue
     //set new node to end of list, and change tail pointer
 
     //this is for FIFO, work on other criteria for when we 
     //implement STCF
-    tQueue->tail->next = newTCB;
-    tQueue->tail = tQueue->tail->next;
     
-    
+    //if scheduler is FIFO 
+    if(tQueue->head == NULL){
+        //queue is empty/just initialized
+        tQueue->head = newThreadNode;
+        tQueue->tail = newThreadNode;
+    }
+    else{
+        //queue has nodes in it, append threadNode to rear
+        newThreadNode->prev = tQueue->tail;
+        newThreadNode->next = NULL;
+        tQueue->tail->next = newThreadNode;
+        tQueue->tail = newThreadNode;
+        
+    }
+
+    //if scheduler is STCF - preemptive shortest job first
+
+    //TODO
+    //create algo to find smallest timeElapsed
+    //should thread be inserted into queue before making context because
+    //of threadWrapper? Probably - tQueue needs to have reference to thread
+    //we're inserting
+
+    //assign thread context to run with threadWrapper/function called in actual
+    //program (not this library)
+    makecontext(&newThreadContext, &threadWrapper, 4, arg, function, 
+                    (int) newTCB->threadID, tQueue->head);
+
+
+    //remove timer block
+    ignoreSIGALRM = 0;
     return 0;
 };
 
@@ -132,6 +255,12 @@ void mypthread_exit(void *value_ptr) {
 	// Deallocated any dynamic memory created when starting this thread
 
 	// YOUR CODE HERE
+    ignoreSIGALRM = 1;
+    printf("\n-----------IN PTHREAD_EXIT---------\n");
+    //make sure you release locks possessed by this thread
+    //how to get threadID in this function?
+
+    ignoreSIGALRM = 0;
 };
 
 
@@ -240,7 +369,12 @@ static void sched_mlfq() {
 /*
     SIGALRM Handler
 */
-void SIGALRM_Handler(){
+static void SIGALRM_Handler(){
+
+    /*
+        TODO:
+        swap threads/contexts when alarm is reset
+    */
     //initialize sigALRM timer
     timerValue.it_value.tv_sec = QUANTUM / 1000;
     //convert seconds to ms by dividing by 1000
@@ -257,13 +391,15 @@ void SIGALRM_Handler(){
     }
     //reset timer to quantum (10ms)
     if(ignoreSIGALRM == 1){
-        //flag to ignore alarms when in critical sections
+        //flag to ignore alarms
         return;
     }
     ignoreSIGALRM == 1;
 
     //swap context to next in queue?
     //check status of currThread and next priority thread
+
+    swapcontext(&mainContext, &schedulerContext);
 
     return;
 
@@ -309,7 +445,7 @@ void printThreadNodes(struct threadNode* head){
 /*
     Locates a specific thread given a threadID and the head of the queue/linked list.
 */
-struct threadNode* findThreadNode(int threadID, struct threadNode* head){
+struct threadNode* getThreadNode(int threadID, struct threadNode* head){
     
     threadNode* ptr = head;
 
