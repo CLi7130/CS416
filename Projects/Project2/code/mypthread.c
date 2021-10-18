@@ -40,12 +40,10 @@ void threadWrapper(void* arg, void*(*function)(void*), int threadID,
 
     //find thread ID, set threadStatus to FINISHED
    runningThread->threadControlBlock->threadStatus = FINISHED;  
-   
+   SIGALRM_Handler();
    //potentially change to scheduler here?
    //***if we are at this point, the function has finished running within the
    //time quantum -> switch to scheduler to schedule new thread
-
-
 
 }
 /* create a new thread */
@@ -72,10 +70,6 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
             3a. once thread context is set, add thread to scheduler runqueue (linked list/queue)
         5. make threadwrapper function to change thread state after execution? check piazza
 
-
-        create main_context
-            - continually update main context through swapcontext(&maincontext, &scheduler)?
-            - 
         uc_link should point to pthread_exit for non main threads?
 
     */
@@ -132,7 +126,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
         tcb* mainThreadTCB = malloc(sizeof(tcb));
         mainThreadTCB->threadID = *thread;
-        mainThreadTCB->threadStatus = READY; 
+        mainThreadTCB->threadStatus = MAIN; 
         mainThreadTCB->elapsedQuantums = 0;
 
         threadNode* mainThread = malloc(sizeof(threadNode));
@@ -214,7 +208,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     //implement STCF
     
     //if scheduler is FIFO 
-    //do we need locks here for the LL? probably?
+    //********IMPLEMENT LOCKS/MUTEX HERE FOR THE QUEUE**********
     if(tQueue->head == NULL){
         //queue is empty/just initialized
         tQueue->head = newThreadNode;
@@ -347,6 +341,8 @@ static void schedule() {
     //- can change this to if statements based on comment above?
     #ifndef MLFQ
         // Choose STCF
+
+        //current implementation is fifo, change when STCF is implemented
         sched_fifo();
     #elif
         
@@ -369,6 +365,12 @@ static void sched_fifo() {
 
 	// YOUR CODE HERE
 
+    /*
+        Fifo should run thread to completion based on queue order
+        - remove head from queue once job is done
+            - adjust queue afterwards
+        - job should remain runnning?
+    */
     //block alarm
     ignoreSIGALRM = 1;
 
@@ -377,12 +379,59 @@ static void sched_fifo() {
     }
     printf("\n----------IN FIFO SCHEDULER--------\n");
     printThreadNodes(tQueue->head);
-    threadNode* currThread = tQueue->head;
-    currRunningThread = currThread;
-    currThread->threadControlBlock->status = RUNNING;
+    putchar('\n');
+    threadNode* currRunningThread = tQueue->head;
+    //thread should already be running thanks to threadWrapper()
+    //currThread->threadControlBlock->threadStatus = RUNNING;
+
+    /*
+        - if threadStatus == finished, remove from queue
+        - if threadStatus == running, set context to currThread
+            - fifo runs until completion?
+        - if threadstatus == MAIN or null, we don't have threads
+            left to run? swap to main.
+    */
+   if(currRunningThread == NULL || 
+        currRunningThread->threadControlBlock->threadStatus == MAIN)
+    {
+        //main thread, or no nodes left in queue
+        printf("sched_fifo: no nodes left in queue/main?\n");
+        ignoreSIGALRM = 0;
+        setcontext(&mainContext);
+    }
+    else if(currRunningThread->threadControlBlock->threadStatus == RUNNING){
+        //swap back to thread context?
+        //fifo runs until completion.
+        printf("sched_fifo: job not done in fifo, resuming thread\n");
+        ignoreSIGALRM = 0;
+        setcontext(&currRunningThread->threadControlBlock->threadContext);
+    }
+    else if(currRunningThread->threadControlBlock->threadStatus == FINISHED){
+        //thread is done working, remove from queue
+        printf("sched_fifo: job done, remove from queue\n");
+        removeThreadNode(currRunningThread);
+        if(tQueue->head != NULL){
+            //still have nodes in the queue
+            setcontext(&tQueue->head->threadControlBlock->threadContext);
+        }
+        else{
+            //no more nodes in queue, done?
+            setcontext(&mainContext);
+        }
+    }
+    else if(currRunningThread->threadControlBlock->threadStatus == READY){
+        //shouldn't be here? this means that the thread hasn't started
+        //running...
+        printf("sched_fifo: thread not started\n");
+        return;
+    }
+        
+    
 
     //remove block from alarm
-    ignoreSIGALRM = 0;
+    //ignoreSIGALRM = 0;
+
+
 
 }
 
@@ -413,10 +462,7 @@ static void sched_mlfq() {
 */
 static void SIGALRM_Handler(){
 
-    /*
-        TODO:
-        swap threads/contexts when alarm is reset
-    */
+    printf("\n------IN SIGALRM HANDLER------\n");
     //initialize sigALRM timer
     timerValue.it_value.tv_sec = QUANTUM / 1000;
     //convert seconds to ms by dividing by 1000
@@ -443,7 +489,8 @@ static void SIGALRM_Handler(){
 
     //this is for FIFO, may need to adjust for STCF
     threadNode* currThread = tQueue->head;
-    if(currThread == NULL || currThread->threadControlBlock->status == READY){
+    if(currThread == NULL || 
+        currThread->threadControlBlock->threadStatus == MAIN){
         //main thread, switch to scheduler
         if(swapcontext(&mainContext, &schedulerContext) == -1){
             //error swapping context
@@ -454,8 +501,17 @@ static void SIGALRM_Handler(){
     }
     else{
         //current Thread was running/done
-        if(swapcontext(&currThread->threadControlBlock->context, 
-                        &schedulerContext) == -1)){
+
+        //save current thread state?
+        if(currThread->threadControlBlock->threadStatus == RUNNING){
+            //update elapsed quantums here?
+            //may be wrong logic, -> first runthrough may update wrong
+            currThread->threadControlBlock->elapsedQuantums++;
+        }
+        setcontext(&currThread->threadControlBlock->threadContext);
+
+        if(swapcontext(&currThread->threadControlBlock->threadContext, 
+                        &schedulerContext) == -1){
             //error swapping current thread with scheduler
             perror("Swap context between thread and scheduler failed\n");
             exit(EXIT_FAILURE);
@@ -484,14 +540,15 @@ void freeThreadNodes(struct threadNode* head){
 }
 
 /*
-    Prints thread nodes, incomplete
+    Prints thread nodes in the thread queue
 */
-void printThreadNodes(struct threadNode* head){
-    if(head == NULL || head == 0){
+void printThreadQueue(struct threadQueue* tempQueue){
+    if(tempQueue->head == NULL || tempQueue->head == 0){
+        printf("Queue is empty\n");
         return;
     }
     int count = 1;
-    struct threadNode* ptr = head;
+    struct threadNode* ptr = tempQueue->head;
     while(ptr != NULL){
     
         printf("Node %d.\n", count);
@@ -501,6 +558,7 @@ void printThreadNodes(struct threadNode* head){
                  ptr->threadControlBlock->elapsedQuantums);
 
         ptr = ptr->next;
+        count++;
     }
 }
 
@@ -517,5 +575,65 @@ struct threadNode* getThreadNode(int threadID, struct threadNode* head){
         }
     }
     //not found
+    return -1;
+}
+/*
+    Searches thread Queue to find a node whose ID matches the ID of the given
+    parameter node, then frees the found node and the found node's TCB, then 
+    removes it from the threadQueue.
+*/
+void removeThreadNode(threadNode* findThreadNode){
+    //probably need locks/mutex in this function
+
+    if(tQueue == NULL || tQueue->head == NULL){
+        //shouldn't be null if we're here, but have to check
+        printf("removeThreadNode: tQueue or tQueue head is null\n");
+        return;
+    }
+
+    threadNode* ptr = tQueue->head;
+    while(ptr != NULL){
+
+        if(ptr->threadControlBlock->threadID == findThreadNode->threadControlBlock->threadID)
+        {
+            //match found, remove/free threadControlBlock and remove from queue
+            if(ptr == tQueue->head){
+                tQueue->head = ptr->next;
+                tQueue->head->prev = NULL;
+                ptr->next = NULL;
+
+                free(ptr->threadControlBlock->threadContext.uc_stack.ss_sp);
+                free(ptr->threadControlBlock);
+                free(ptr);
+                return;
+            }
+            else if(ptr == tQueue->tail){
+                tQueue->tail->prev->next = NULL;
+                tQueue->tail = tQueue->tail->prev;
+                ptr->prev = NULL;
+
+                free(ptr->threadControlBlock->threadContext.uc_stack.ss_sp);
+                free(ptr->threadControlBlock);
+                free(ptr);
+                return;
+            }
+            else{
+                //somewhere in the middle of the queue
+                ptr->prev->next = ptr->next;
+                ptr->next->prev = ptr->prev;
+
+                ptr->next = NULL;
+                ptr->prev = NULL;
+
+                free(ptr->threadControlBlock->threadContext.uc_stack.ss_sp);
+                free(ptr->threadControlBlock);
+                free(ptr);
+                return;
+            }
+        }
+
+        ptr = ptr->next;
+    }
+    printf("no match found\n");
     return -1;
 }

@@ -26,11 +26,13 @@
 
 //thread states, add more if necessary
 typedef enum status{
-    READY, WAITING, RUNNING, FINISHED
+    READY, WAITING, RUNNING, FINISHED, MAIN
     //ready = 0
     //waiting = 1
     //running = 2
     //finished = 3
+    //main -> only set to main thread, no other threads have this
+    //status
     //do we need blocked according to piazza? TA says no..
 }status;
 
@@ -38,13 +40,13 @@ typedef enum status{
 #define STACKSIZE 32000 //32KB for user thread stack = 32000 bytes
 // <100 threads used for grading according to benchmark readme?
 
-/*
-#ifndef STCF
+
+#ifdef STCF
     #define SCHEDULE STCF
-#else FIFO
-    #define SCHEDULE FIFO
+#else
+    #define SCHEDULE FIFO 
 #endif
-*/
+
 //identifier "uint" is undefined - changed to unsigned int?
 typedef unsigned int mypthread_t;
 
@@ -87,7 +89,6 @@ typedef struct mypthread_mutex_t {
 //TCB goes into a threadNode, which is put into threadQueue
 typedef struct threadNode{
     tcb* threadControlBlock;
-    ucontext_t context;
 
     struct threadNode* next;
     struct threadNode* prev;
