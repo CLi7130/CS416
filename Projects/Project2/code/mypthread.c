@@ -38,6 +38,9 @@ void threadWrapper(void* arg, void*(*function)(void*), int threadID,
    //void* theadFunction = (*function)(arg);
    function(arg);
    //find thread ID, set threadStatus to FINISHED
+   //potentially change to scheduler here?
+   //if we are at this point, the function has finished running within the
+   //time quantum -> switch to scheduler to schedule new thread
    runningThread->threadControlBlock->threadStatus = FINISHED;
 
 }
@@ -186,7 +189,8 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     }
 
     //link to exit, when thread is done, cleanup and change status to done
-    newThreadContext.uc_link = &mypthread_exit;
+    //link to scheduler context? have to run scheduler anyway
+    newThreadContext.uc_link = &schedulerContext;
     newThreadContext.uc_stack.ss_size = STACKSIZE;
     newThreadContext.uc_stack.ss_flags = 0;
 
@@ -206,6 +210,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     //implement STCF
     
     //if scheduler is FIFO 
+    //do we need locks here for the LL? probably?
     if(tQueue->head == NULL){
         //queue is empty/just initialized
         tQueue->head = newThreadNode;
@@ -247,6 +252,7 @@ int mypthread_yield() {
 	// switch from thread context to scheduler context
 
 	// YOUR CODE HERE
+
 	return 0;
 };
 

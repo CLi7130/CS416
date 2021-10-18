@@ -26,9 +26,9 @@
 
 //thread states, add more if necessary
 typedef enum status{
-    READY, SCHEDULED, RUNNING, FINISHED
+    READY, WAITING, RUNNING, FINISHED
     //ready = 0
-    //scheduled = 1
+    //waiting = 1
     //running = 2
     //finished = 3
     //do we need blocked according to piazza? TA says no..
