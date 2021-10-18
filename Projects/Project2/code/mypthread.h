@@ -38,6 +38,13 @@ typedef enum status{
 #define STACKSIZE 32000 //32KB for user thread stack = 32000 bytes
 // <100 threads used for grading according to benchmark readme?
 
+/*
+#ifndef STCF
+    #define SCHEDULE STCF
+#else FIFO
+    #define SCHEDULE FIFO
+#endif
+*/
 //identifier "uint" is undefined - changed to unsigned int?
 typedef unsigned int mypthread_t;
 

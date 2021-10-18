@@ -37,11 +37,15 @@ void threadWrapper(void* arg, void*(*function)(void*), int threadID,
    runningThread->threadControlBlock->threadStatus = RUNNING;
    //void* theadFunction = (*function)(arg);
    function(arg);
-   //find thread ID, set threadStatus to FINISHED
+
+    //find thread ID, set threadStatus to FINISHED
+   runningThread->threadControlBlock->threadStatus = FINISHED;  
+   
    //potentially change to scheduler here?
-   //if we are at this point, the function has finished running within the
+   //***if we are at this point, the function has finished running within the
    //time quantum -> switch to scheduler to schedule new thread
-   runningThread->threadControlBlock->threadStatus = FINISHED;
+
+
 
 }
 /* create a new thread */
@@ -336,17 +340,49 @@ static void schedule() {
 
 	// YOUR CODE HERE
     
+    //if(SCHEDULE == FIFO){
+    //figure out how to define FIFO, STCF in headers
 
-    // schedule policy
+    // schedule policy 
+    //- can change this to if statements based on comment above?
     #ifndef MLFQ
         // Choose STCF
-    #else
+        sched_fifo();
+    #elif
+        
         // Choose MLFQ
         //not req for 416
+        
+        //current implementation schedules stcf if not FIFO
+        sched_stcf();
     #endif
-
+    
     //not req to implement MLFQ for 416
     //we only need to route to stcf here?
+
+}
+
+/* First in First Out (FIFO) scheduling algorithm */
+static void sched_fifo() {
+	// Your own implementation of FIFO
+	// (feel free to modify arguments and return types)
+
+	// YOUR CODE HERE
+
+    //block alarm
+    ignoreSIGALRM = 1;
+
+    if(tQueue->head == NULL){
+        printf("Empty Queue, check logic?\n");
+    }
+    printf("\n----------IN FIFO SCHEDULER--------\n");
+    printThreadNodes(tQueue->head);
+    threadNode* currThread = tQueue->head;
+    currRunningThread = currThread;
+    currThread->threadControlBlock->status = RUNNING;
+
+    //remove block from alarm
+    ignoreSIGALRM = 0;
 
 }
 
@@ -373,7 +409,7 @@ static void sched_mlfq() {
 // YOUR CODE HERE
 
 /*
-    SIGALRM Handler
+    SIGALRM Handler, swaps context to scheduler every time QUANTUM is elapsed, and SIGALRM is called.
 */
 static void SIGALRM_Handler(){
 
@@ -389,7 +425,7 @@ static void SIGALRM_Handler(){
     timerValue.it_interval = timerValue.it_value;
     //set interval of timer, have to repeat this when sigalarm is called
 
-    //condition resets and fires timer to QUANTUM
+    //condition resets and sets timer to QUANTUM
     if(setitimer(ITIMER_REAL, &timerValue, NULL) == -1){
         //setitimer error
         perror("Error setting timer (setitimer())\n");
@@ -402,11 +438,30 @@ static void SIGALRM_Handler(){
     }
     ignoreSIGALRM == 1;
 
-    //swap context to next in queue?
+    //swap context to next in queue? ->change to scheduler
     //check status of currThread and next priority thread
 
-    swapcontext(&mainContext, &schedulerContext);
-
+    //this is for FIFO, may need to adjust for STCF
+    threadNode* currThread = tQueue->head;
+    if(currThread == NULL || currThread->threadControlBlock->status == READY){
+        //main thread, switch to scheduler
+        if(swapcontext(&mainContext, &schedulerContext) == -1){
+            //error swapping context
+            perror("Swap Context Error between main and scheduler\n");
+            exit(EXIT_FAILURE);
+        }
+        
+    }
+    else{
+        //current Thread was running/done
+        if(swapcontext(&currThread->threadControlBlock->context, 
+                        &schedulerContext) == -1)){
+            //error swapping current thread with scheduler
+            perror("Swap context between thread and scheduler failed\n");
+            exit(EXIT_FAILURE);
+        }
+        
+    }
     return;
 
 }
@@ -432,7 +487,7 @@ void freeThreadNodes(struct threadNode* head){
     Prints thread nodes, incomplete
 */
 void printThreadNodes(struct threadNode* head){
-    if(head == 0){
+    if(head == NULL || head == 0){
         return;
     }
     int count = 1;
@@ -442,7 +497,8 @@ void printThreadNodes(struct threadNode* head){
         printf("Node %d.\n", count);
         printf("Thread ID: %d\n", ptr->threadControlBlock->threadID);
         printf("Thread Status: %s\n", ptr->threadControlBlock->threadStatus);
-        printf("Thread Elapsed Quantums (Runtime): %d\n", ptr->threadControlBlock->elapsedQuantums);
+        printf("Thread Elapsed Quantums (Runtime): %d\n",
+                 ptr->threadControlBlock->elapsedQuantums);
 
         ptr = ptr->next;
     }
@@ -452,9 +508,8 @@ void printThreadNodes(struct threadNode* head){
     Locates a specific thread given a threadID and the head of the queue/linked list.
 */
 struct threadNode* getThreadNode(int threadID, struct threadNode* head){
-    
+   
     threadNode* ptr = head;
-
     while(ptr != NULL){
         if(ptr->threadControlBlock->threadID == threadID){
             //match found
