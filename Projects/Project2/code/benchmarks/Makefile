@@ -16,4 +16,8 @@ test:
 	$(CC) $(CFLAGS) -pthread -o test test.c -L../ -lmypthread
 
 clean:
-	rm -rf testcase test parallel_cal vector_multiply external_cal *.o ./record/
+	rm -rf testcase test parallel_cal pcal vector_multiply external_cal *.o ./record/
+
+
+pcal:
+	$(CC) $(CFLAGS) -pthread -o pcal pcal.c -L../ -lmypthread
