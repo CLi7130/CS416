@@ -13,7 +13,7 @@
 
 void *thread(void *arg) {
   
-  printf("thread() entered\n");
+  //mypthread_exit(NULL);
   
 }
 
@@ -43,12 +43,12 @@ int main(int argc, char **argv) {
             perror("pthread_create\n");
         }
     }
-
+    
     for(int i = 0; i < numThreads; i++){
         mypthread_join(tids[i], NULL);
         printf("thread %d joined\n", i);
     }
-
+    
     printf("thread exited with\n");
 	return 0;
 }
