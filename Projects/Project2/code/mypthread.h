@@ -107,6 +107,9 @@ typedef struct threadQueue{
 
 } threadQueue;
 
+void* retVals[500];
+//array of void pointers to store return values of threads
+
 
 /* Function Declarations: */
 
@@ -144,7 +147,7 @@ static void schedule();
 void freeThreadNode(threadNode* deleteNode);
 void freeThreadNodes(threadNode* head);
 void printThreadQueue(struct threadQueue* tempQueue);
-struct threadNode* getThreadNode(int threadID, struct threadNode* head);
+struct threadNode* getThreadNode(int threadID);
 void removeThreadNode(threadNode* findThreadNode);
 
 #ifdef USE_MYTHREAD

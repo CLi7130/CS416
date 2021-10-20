@@ -1,4 +1,4 @@
-CC = gcc
+CC = gcc -fsanitize=address
 CFLAGS = -g -w
 
 all:: parallel_cal vector_multiply external_cal test

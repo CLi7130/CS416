@@ -13,7 +13,9 @@
 
 void *thread(void *arg) {
   
-  //mypthread_exit(NULL);
+  for(int i = 0; i < 5; i++){
+      printf("%d. hello from %d\n", i, (int) arg);
+  }
   
 }
 
@@ -21,7 +23,7 @@ void *thread(void *arg) {
 int main(int argc, char **argv) {
     mypthread_t* tids;
     void *ret;
-    int numThreads = 3;
+    int numThreads = 4;
     int err = 0;
 
     tids = malloc(numThreads * sizeof(mypthread_t));
@@ -37,7 +39,7 @@ int main(int argc, char **argv) {
     }*/
 
     for(int i = 0; i < numThreads; i++){
-        err = mypthread_create(&tids[i], NULL, thread, NULL);
+        err = mypthread_create(&tids[i], NULL, thread, i);
         printf("thread %d created\n", i);
         if(err != 0){
             perror("pthread_create\n");
@@ -50,5 +52,6 @@ int main(int argc, char **argv) {
     }
     
     printf("thread exited with\n");
+    free(tids);
 	return 0;
 }

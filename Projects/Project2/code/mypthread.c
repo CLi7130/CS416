@@ -11,7 +11,7 @@
 
 
 threadQueue* tQueue = NULL; //thread queue
-threadNode* currRunningThread = NULL; //currently running thread
+//threadNode* currRunningThread = NULL; //currently running thread
 ucontext_t mainContext; //context of parent/main?
 ucontext_t schedulerContext; //context of scheduler
 int numThreads = 0;
@@ -19,7 +19,6 @@ int ignoreSIGALRM = 0; //flag to avoid interrupt
 struct itimerval timerValue;
 struct sigaction sigAction;
 mypthread_mutex_t mutexLock;
-int firstRunFlag = 0;
 int count = 0;
 
 /*
@@ -38,9 +37,10 @@ void* threadWrapper(void * arg, void *(*function)(void*), int threadID,
    printf("--------IN WRAPPER----------\n");
    threadNode* runningThread = tQueue->head;
    runningThread->threadControlBlock->threadStatus = RUNNING;
-   //void* theadFunction = (*function)(arg);
-   //(*function)(arg);
-   function(arg);
+
+   //store return value
+   retVals[(int) runningThread->threadControlBlock->threadID] 
+            = (*function)(arg);
 
     //find thread ID, set threadStatus to FINISHED
    runningThread->threadControlBlock->threadStatus = FINISHED;  
@@ -74,14 +74,12 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
             3a. once thread context is set, add thread to scheduler runqueue (linked list/queue)
         5. make threadwrapper function to change thread state after execution? check piazza
 
-        uc_link should point to pthread_exit for non main threads?
-
     */
     //set flag to override SIGALRM for handler
     ignoreSIGALRM = 1;
     
     *thread = ++numThreads; //change value for every new thread
-
+    printf("IN PTHREAD CREATE\n");
     //create TCB
     tcb* newTCB = malloc(sizeof(tcb));
     newTCB->threadID = *thread;
@@ -146,9 +144,6 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
             exit(EXIT_FAILURE);
         }
 
-        //call handler to start timer?
-        SIGALRM_Handler();
-
         if(getcontext(&schedulerContext) == -1){
             perror("Initializing Scheduler Context Failed.\n");
             exit(EXIT_FAILURE);
@@ -173,34 +168,39 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         */
         //(void*)
         makecontext(&schedulerContext, schedule, 0); 
-
+        newThreadContext.uc_link = &schedulerContext;
         printf("scheduler context made\n");
 
         //queue is empty/Null, make new queue
         tQueue = malloc(sizeof(threadQueue));
+        tQueue->head = NULL;
+        tQueue->tail = NULL;
         
         //if scheduler is FIFO 
         //********IMPLEMENT LOCKS/MUTEX HERE FOR THE QUEUE**********
+        printThreadQueue(tQueue);
         if(tQueue->head == NULL){
             //queue is empty/just initialized
+            printf("----------EMPTY LL ADDING NODE-------------\n");
             tQueue->head = newThreadNode;
             tQueue->tail = newThreadNode;
+            printThreadQueue(tQueue);
         }
         else{
             //queue has nodes in it, append threadNode to rear
+            printf("----------NONEMPTY LL ADDING NODE-------------\n"); 
             newThreadNode->prev = tQueue->tail;
             newThreadNode->next = NULL;
             tQueue->tail->next = newThreadNode;
             tQueue->tail = newThreadNode;
+            printThreadQueue(tQueue);
         }
-        if(firstRunFlag == 0){
-            makecontext(&newThreadContext, (void*) threadWrapper, 4, arg, function, (int) newTCB->threadID, tQueue->head);
-            firstRunFlag = 1;
-        }
-
         
-        //create context for main
+        //is this initialized correctly? we never go into the thread wrapper?
+        makecontext(&newThreadContext, (void*) threadWrapper, 4, arg, function, (int) newTCB->threadID, tQueue->head);
+        newTCB->threadContext = newThreadContext;
 
+        //create context for main
         mainContext.uc_stack.ss_sp = malloc(STACKSIZE); //create stack
         
         if(mainContext.uc_stack.ss_sp <= 0){
@@ -225,11 +225,13 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         mainContext.uc_stack.ss_flags = 0;  //no flags on creation
 
         printf("main context made");
-
+        
         if(getcontext(&mainContext) == -1){
             perror("Initializing Main Context Failed.\n");
             exit(EXIT_FAILURE);
         }
+        //start timer here, will return immediately due to ignoreSIGALRM
+        SIGALRM_Handler();
         mainThread->threadControlBlock->threadContext = mainContext;
 
     }
@@ -253,6 +255,8 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
             tQueue->tail->next = newThreadNode;
             tQueue->tail = newThreadNode;
         }
+        makecontext(&newThreadContext, (void*) threadWrapper, 4, arg, function, (int) newTCB->threadID, tQueue->head);
+        newTCB->threadContext = newThreadContext;
         //this is for FIFO, work on other criteria for when we 
         //implement STCF
         //if scheduler is STCF - preemptive shortest job first
@@ -293,10 +297,12 @@ int mypthread_yield() {
     printf("----------IN PTHREAD_YIELD------------\n");
     if(tQueue == NULL || tQueue->head == NULL){
         //somehow queue is null or empty, just return
+        printf("Pthread_Yield: Empty Queue?\n");
         return 0;
     }
     if(tQueue->head->threadControlBlock->threadStatus == RUNNING){
         //find next thread that is READY
+        printf("pthread_yield: head is running, find next ready node\n");
         threadNode* ptr = tQueue->head->next;
         threadNode* yieldedPTR = tQueue->head;
         
@@ -334,7 +340,12 @@ void mypthread_exit(void *value_ptr) {
     //make sure you release locks possessed by this thread
     //how to get threadID in this function?
     tQueue->head->threadControlBlock->threadStatus = FINISHED;
-    removeThreadNode(tQueue->head);
+    //removeThreadNode(tQueue->head);
+
+    if(value_ptr != NULL){
+        //have to get return value of thread
+        retVals[(int) tQueue->head->threadControlBlock->threadID] = value_ptr;
+    }
     ignoreSIGALRM = 0;
     SIGALRM_Handler();
 };
@@ -347,31 +358,66 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
 	// de-allocate any dynamic memory created by the joining thread
 
 	// YOUR CODE HERE
+
+
+    /*
+        Potential scheduling idea, when join is called, move current thread to
+        just behind thread to join, so when thread to join completes, we already
+        have correct ordering of next thread. Can multiple threads join?
+    */
     ignoreSIGALRM = 1;
     printf("-----------IN MYPTHREAD JOIN--------\n");
-    threadNode* waitForThisThread = getThreadNode(thread, tQueue->head);
+    printThreadQueue(tQueue);
+
+    threadNode* waitForThisThread = getThreadNode(thread);
     //fix this, thread to join has to be marked, joinee is put as waiting.
     //waitForThisThread->threadControlBlock->threadStatus = ;
     printf("FOUND THREAD\n");
 
     //thread not in queue
     if(waitForThisThread == NULL){
+        printf("pthread_yield: THIS THREAD NOT IN QUEUE\n");
+        if(value_ptr != NULL){
+            //have to save return value
+            *value_ptr = retVals[(int) thread];
+        }
         ignoreSIGALRM = 0;
         return 0;
     }    
     else if(waitForThisThread->threadControlBlock->threadStatus == FINISHED){
         //thread is done or already removed from queue
+        printf("pthread_yield: THIS THREAD IS FINISHED\n");
+        if(value_ptr != NULL){
+            //save return value
+            *value_ptr = 
+                retVals[(int) waitForThisThread->threadControlBlock->threadID];
+        }        
+
         removeThreadNode(waitForThisThread); 
+        ignoreSIGALRM = 0;
+        return 0;
     }
     else{
         //thread is still running, yield this thread until waitForThisThread
         //finishes
-        
+        printf("pthread_yield: THIS THREAD IS NOT FINISHED\n");
         //signifies that other threads are waiting on this one
         waitForThisThread->threadControlBlock->hasDependents = 1;
+        //update LL here, send threadNode behind thread that we are waiting on?
+        ignoreSIGALRM = 0;
+        SIGALRM_Handler(); //handle joined thread
+        
+        if(value_ptr != NULL){
+            //save return value
+            *value_ptr = 
+                retVals[(int) thread];
+        }
+        //come back here to test functionality
+        printf("ABORT HERE, CHANGE ME\n");
+        removeThreadNode(waitForThisThread);
+        return 0;
     }
-    ignoreSIGALRM = 0;
-	return 0;
+    
 };
 
 /* initialize the mutex lock */
@@ -503,6 +549,7 @@ static void sched_fifo() {
     {
         //main thread, or no nodes left in queue
         printf("sched_fifo: no nodes left in queue/main?\n");
+        printThreadQueue(tQueue);
         ignoreSIGALRM = 0;
         setcontext(&mainContext);
     }
@@ -510,6 +557,7 @@ static void sched_fifo() {
         //swap back to thread context?
         //fifo runs until completion.
         printf("sched_fifo: job not done in fifo, resuming thread\n");
+        printThreadQueue(tQueue);
         ignoreSIGALRM = 0;
         setcontext(&currRunningThread->threadControlBlock->threadContext);
         
@@ -518,6 +566,7 @@ static void sched_fifo() {
         //thread is done working, remove from queue
         //alert all threads waiting on this thread?
         printf("sched_fifo: job done, remove from queue\n");
+        printThreadQueue(tQueue);
         removeThreadNode(currRunningThread);
         if(tQueue->head != NULL){
             //still have nodes in the queue
@@ -535,6 +584,8 @@ static void sched_fifo() {
         //running...could be from yield
         printf("sched_fifo: thread not started\n");
         currRunningThread->threadControlBlock->threadStatus = RUNNING;
+        printThreadQueue(tQueue);
+        
         setcontext(&currRunningThread->threadControlBlock->threadContext);
     }
     
@@ -570,13 +621,13 @@ static void sched_mlfq() {
     SIGALRM Handler, swaps context to scheduler every time QUANTUM is elapsed, and SIGALRM is called.
 */
 static void SIGALRM_Handler(){
-    
+    /*
     count++;
     if(count == 15){
         printf("ABORTING\n");
         abort();
     }
-    
+    */
     printf("\n------IN SIGALRM HANDLER------\n");
     //initialize sigALRM timer
     timerValue.it_value.tv_sec = QUANTUM / 1000;
@@ -606,10 +657,10 @@ static void SIGALRM_Handler(){
     //this is for FIFO, may need to adjust for STCF
     threadNode* currThread = tQueue->head;
     if(currThread == NULL || 
-        currThread->threadControlBlock->threadStatus == MAIN){
+        currThread->threadControlBlock->threadStatus == READY){
         //main thread, switch to scheduler
         //getcontext(&mainContext);
-        printf("SIGALRM Handler: SWAP TO MAIN------\n");
+        printf("SIGALRM Handler: SWAP TO scheduler------\n");
         if(swapcontext(&mainContext, &schedulerContext) == -1){
             //error swapping context
             perror("Swap Context Error between main and scheduler\n");
@@ -700,13 +751,16 @@ void printThreadQueue(struct threadQueue* tempQueue){
 }
 
 /*
-    Locates a specific thread given a threadID and the head of the queue/linked list.
+    Locates a specific thread given a threadID.
 */
-struct threadNode* getThreadNode(int threadID, struct threadNode* head){
-   ignoreSIGALRM = 1;
-    threadNode* ptr = head;
+struct threadNode* getThreadNode(int threadID){
+    ignoreSIGALRM = 1;
+    threadNode* ptr = tQueue->head;
+
+    printThreadQueue(tQueue);
+
     while(ptr != NULL){
-        if(ptr->threadControlBlock->threadID == threadID){
+        if((int) ptr->threadControlBlock->threadID == threadID){
             //match found
             return ptr;
         }
