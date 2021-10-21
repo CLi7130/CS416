@@ -1,0 +1,144 @@
+IN PTHREAD CREATE
+
+------IN SIGALRM HANDLER------
+SIGALRM HANDLER EXIT EARLY
+scheduler context made
+main context made
+THREAD CREATED
+------THREAD QUEUE-----------
+Node 1.
+Thread ID: 1
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+LIST DONE
+thread 0 created
+IN PTHREAD CREATE
+
+THREAD CREATED
+------THREAD QUEUE-----------
+Node 1.
+Thread ID: 1
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 2.
+Thread ID: 2
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+LIST DONE
+thread 1 created
+IN PTHREAD CREATE
+
+THREAD CREATED
+------THREAD QUEUE-----------
+Node 1.
+Thread ID: 1
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 2.
+Thread ID: 2
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 3.
+Thread ID: 3
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+LIST DONE
+thread 2 created
+-----------IN MYPTHREAD JOIN--------
+------THREAD QUEUE-----------
+Node 1.
+Thread ID: 1
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 2.
+Thread ID: 2
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 3.
+Thread ID: 3
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+LIST DONE
+------THREAD QUEUE-----------
+Node 1.
+Thread ID: 1
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 2.
+Thread ID: 2
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 3.
+Thread ID: 3
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+LIST DONE
+FOUND THREAD
+
+------IN SIGALRM HANDLER------
+SIGALRM Handler: SWAP TO scheduler------
+
+-----------IN SCHEDULE---------
+
+----------IN FIFO SCHEDULER (START)--------
+------THREAD QUEUE-----------
+Node 1.
+Thread ID: 1
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 2.
+Thread ID: 2
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 3.
+Thread ID: 3
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+LIST DONE
+
+sched_fifo: thread not started
+
+THREAD CREATED
+------THREAD QUEUE-----------
+Node 1.
+Thread ID: 1
+Thread Status: 2
+Thread Elapsed Quantums (Runtime): 0
+
+Node 2.
+Thread ID: 2
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 3.
+Thread ID: 3
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+Node 4.
+Thread ID: 3
+Thread Status: 0
+Thread Elapsed Quantums (Runtime): 0
+
+LIST DONE
+*** stack smashing detected ***: terminated
+Aborted
+
+stack smashing at end of pthreadCreate -> call printThreadQueue, which prints 4 nodes somehow, even though there are only 3 whyyyyyyyyyyyy
+
+check ptrhead_join -> line 385 after sighandler returns, a threadNode is freed?

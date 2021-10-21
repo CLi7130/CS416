@@ -32,7 +32,7 @@ typedef enum status{
     //waiting = 1
     //running = 2
     //finished = 3
-    //main -> only set to main thread, no other threads have this
+    //main  = 4 -> only set to main thread, no other threads have this
     //status
     //do we need blocked according to piazza? TA says no..
 }status;
@@ -62,12 +62,13 @@ typedef struct threadControlBlock {
 	// And more ...
 
 	// YOUR CODE HERE
-    pthread_t* threadID; //pointer to thread
+    mypthread_t threadID; //pointer to thread
     status threadStatus;//ready,scheduled,blocked
     ucontext_t threadContext; //context for thread
     int elapsedQuantums; //number of quantums thread has run
-    int isYielded; //flag for whether thread is yielded,
-                    // skip thread unless it is last one left?
+    int hasDependents; //flag for whether thread has other threads waiting
+                        //for it to finish
+                    
 
     //add priority? could base priority off of elapsedQuantums
     //int priority; //0 for top priority, 1 is next highest, etc
@@ -106,6 +107,9 @@ typedef struct threadQueue{
 
 } threadQueue;
 
+void* retVals[500];
+//array of void pointers to store return values of threads
+
 
 /* Function Declarations: */
 
@@ -143,7 +147,7 @@ static void schedule();
 void freeThreadNode(threadNode* deleteNode);
 void freeThreadNodes(threadNode* head);
 void printThreadQueue(struct threadQueue* tempQueue);
-struct threadNode* getThreadNode(int threadID, struct threadNode* head);
+struct threadNode* getThreadNode(int threadID);
 void removeThreadNode(threadNode* findThreadNode);
 
 #ifdef USE_MYTHREAD
@@ -151,7 +155,8 @@ void removeThreadNode(threadNode* findThreadNode);
 #define pthread_mutex_t mypthread_mutex_t
 #define pthread_create mypthread_create
 #define pthread_exit mypthread_exit
-#define pthread_join mypthread_join
+#define pthread_join mypthread_joinstruct threadNode* getThreadNode(int threadID, struct threadNode* head)
+
 #define pthread_mutex_init mypthread_mutex_init
 #define pthread_mutex_lock mypthread_mutex_lock
 #define pthread_mutex_unlock mypthread_mutex_unlock
