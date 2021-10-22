@@ -12,7 +12,7 @@
  */
 
 void *thread(void *arg) {
-  
+  /*
   int i = 0;
   while(1){
       printf("%d. hello from %d\n", i, (int) arg);
@@ -21,7 +21,9 @@ void *thread(void *arg) {
       if(i >= 200){
           break;
       }
-  }
+  }*/
+  printf(" hello from %d\n", (int) arg);
+  abort();
   
 }
 
@@ -53,7 +55,16 @@ int main(int argc, char **argv) {
 
     for(int i = 0; i < 100; i++){
         printf("%d. Sleeping In the main function;\n", i);
-        sleep(5);
+        int count = 0;
+
+        //terrible attempt at recreating sleep, so we don't
+        //have to use sigalarm
+        while(1){
+            count++;
+            if(count == 500000000){
+                break;
+            }
+        }
         
     }
 
