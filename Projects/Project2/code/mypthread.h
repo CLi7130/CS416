@@ -66,6 +66,7 @@ typedef struct threadControlBlock {
     mypthread_t threadID; //pointer to thread
     status threadStatus;//ready,scheduled,blocked
     ucontext_t threadContext; //context for thread
+    ucontext_t retContext;
     int elapsedQuantums; //number of quantums thread has run
     int hasDependents; //flag for whether thread has other threads waiting
                         //for it to finish
@@ -151,6 +152,7 @@ void printThreadQueue(struct threadQueue* tempQueue);
 struct threadNode* getThreadNode(int threadID);
 void removeThreadNode(threadNode* findThreadNode);
 int getQueueSize(struct threadQueue* inputQueue);
+void finishThread(int threadID);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t

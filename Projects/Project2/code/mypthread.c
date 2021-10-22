@@ -15,9 +15,9 @@ threadQueue* tQueue = NULL; //thread queue
 ucontext_t mainContext; //context of parent/main?
 ucontext_t schedulerContext; //context of scheduler
 int numThreads = 0;
-int ignoreSIGALRM = 0; //flag to avoid interrupt
-struct itimerval timerValue;
-struct sigaction myAlarm;
+static int ignoreSIGALRM = 0; //flag to avoid interrupt
+static struct itimerval timerValue;
+static struct sigaction myAlarm;
 mypthread_mutex_t mutexLock;
 int count = 0;
 int init = 0;
@@ -116,7 +116,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         tcb* mainThreadTCB = malloc(sizeof(tcb));
         mainThreadTCB->threadID = *thread;
         mainThreadTCB->threadStatus = MAIN; 
-        mainThreadTCB->elapsedQuantums = INT_MAX;
+        mainThreadTCB->elapsedQuantums = 0; //use INT_MAX for priority queue?
 
         threadNode* mainThread = malloc(sizeof(threadNode));
         mainThread->threadControlBlock = mainThreadTCB;
@@ -176,15 +176,14 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     newTCB->elapsedQuantums = 0;
     newTCB->hasDependents = 0;
 
-    //get context for new thread
-    ucontext_t newThreadContext;
-    if(getcontext(&newThreadContext) == -1){
+
+    if(getcontext(&(newTCB->retContext)) == -1){
         perror("Initializing New Thread Context Failed.\n");
         exit(EXIT_FAILURE);
     }
+    newTCB->retContext.uc_stack.ss_sp = malloc(STACKSIZE);
 
-    newThreadContext.uc_stack.ss_sp = malloc(STACKSIZE);
-    if(newThreadContext.uc_stack.ss_sp <= 0){
+    if(newTCB->retContext.uc_stack.ss_sp <= 0){
         printf("Memory not allocated for new thread: %d (%d)\n",
                  newTCB->threadID, numThreads);
         exit(EXIT_FAILURE);
@@ -192,14 +191,36 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
     //link to exit, when thread is done, cleanup and change status to done
     //link to scheduler context? have to run scheduler anyway
-    newThreadContext.uc_link = &schedulerContext;
-    newThreadContext.uc_stack.ss_size = STACKSIZE;
-    newThreadContext.uc_stack.ss_flags = 0;
+    newTCB->retContext.uc_link = &schedulerContext;
+    newTCB->retContext.uc_stack.ss_size = STACKSIZE;
+    newTCB->retContext.uc_stack.ss_flags = 0;
+
+    makecontext(&(newTCB->retContext), (void*)finishThread, 1, newTCB->threadID);
+
+    //get context for new thread
+    //ucontext_t newThreadContext;
+    if(getcontext(&(newTCB->threadContext)) == -1){
+        perror("Initializing New Thread Context Failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    newTCB->threadContext.uc_stack.ss_sp = malloc(STACKSIZE);
+    if(newTCB->threadContext.uc_stack.ss_sp <= 0){
+        printf("Memory not allocated for new thread: %d (%d)\n",
+                 newTCB->threadID, numThreads);
+        exit(EXIT_FAILURE);
+    }
+
+    //link to return context, which finishes job
+    newTCB->threadContext.uc_link = &(newTCB->retContext);
+    newTCB->threadContext.uc_stack.ss_size = STACKSIZE;
+    newTCB->threadContext.uc_stack.ss_flags = 0;
 
     //set new thread context to TCB
-    makecontext(&newThreadContext, (void*) function, 1, arg);
+    makecontext(&(newTCB->threadContext), (void*)function, 1, arg);
+
     //makecontext(&newThreadContext, (void*) threadWrapper, 4, arg, function, (int) newTCB->threadID, tQueue);
-    newTCB->threadContext = newThreadContext;
+    
     
 
     //insert tcb into new threadnode
@@ -431,6 +452,24 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex) {
 	return 0;
 };
 
+/*
+    Once a job is finished running, it's uc_link will take it here, and it 
+    is marked as finished, then we call sigalrm handler to take us back to schedule.
+*/
+void finishThread(int threadID){
+    ignoreSIGALRM = 1;
+    threadNode* finishedThread = getThreadNode(threadID);
+    printf("~~~~~~~~~~~~IN FINISH THREAD FUNCTION~~~~~~~~~~~~~~~~~\n");
+    if(finishedThread == NULL || finishedThread->threadControlBlock == NULL){
+        perror("TRYING TO FIND DELETED JOB\n");
+        exit(EXIT_FAILURE);
+    }
+    finishedThread->threadControlBlock->threadStatus = FINISHED;
+
+    ignoreSIGALRM = 0;
+    SIGALRM_Handler();
+}
+
 /* scheduler */
 static void schedule() {
 	// Every time when timer interrup happens, your thread library
@@ -652,14 +691,10 @@ static void SIGALRM_Handler(){
         //current Thread was running
         //update elapsed quantums here?
         //check logic here - do we have to save thread state?
-        
+        printf("INCREASING ELAPSED QUANTUMS\n");
         currThread->threadControlBlock->elapsedQuantums++;
         printf("SAH: RUNNING - SWAP TO THREAD FROM SCHEDULER------\n");
-        if(currThread->threadControlBlock->elapsedQuantums == 5){
-            abort();
-        }
 
-        
         if(swapcontext(&currThread->threadControlBlock->threadContext, 
                         &schedulerContext) == -1){
             //error swapping current thread with scheduler
@@ -735,10 +770,6 @@ void printThreadQueue(struct threadQueue* tempQueue){
 
         ptr = ptr->next;
         count++;
-        if(count >= 15){
-            printf("TOO MANY NODES\n");
-            abort();
-        }
     }
     printf("LIST DONE\n");
 }

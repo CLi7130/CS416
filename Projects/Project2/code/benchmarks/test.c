@@ -22,8 +22,12 @@ void *thread(void *arg) {
           break;
       }
   }*/
-  printf(" hello from %d\n", (int) arg);
-  abort();
+  int i = 0;
+  while(i < 20){
+    printf("\n~~~~~~~~~~~~~~~~IN THE THREAD FUNCTION~~~~~~~~~~~~~~~~~~~~~\n");
+    printf(" hello from %d\n", (int) arg);
+    i++;
+  }
   
 }
 
@@ -69,8 +73,10 @@ int main(int argc, char **argv) {
     }
 
     for(int i = 0; i < numThreads; i++){
-        mypthread_join(tids[i], NULL);
+        printf("~~~~~~~~~~~~~~~~~MAIN: IN PTHREAD_JOIN~~~~~~~~~~~~~~~~~~\n");
         printf("thread %d joined\n", i);
+        mypthread_join(tids[i], NULL);
+        
     }
     
     printf("thread exited with\n");
