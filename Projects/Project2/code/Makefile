@@ -23,3 +23,17 @@ endif
 
 clean:
 	rm -rf testfile *.o *.a
+
+test:
+	make clean
+	make
+	cd benchmarks && \
+	make clean && \
+	make && \
+	./test
+
+cleanTest:
+	cd benchmarks && \
+	make clean && \
+	cd .. && \
+	make clean
