@@ -24,6 +24,7 @@
 #include <ucontext.h> //makecontext()
 #include <signal.h> //signal stack/sigaction()
 #include <string.h>
+#include <limits.h> //for intmax, probably should not use this
 
 //thread states, add more if necessary
 typedef enum status{
@@ -149,6 +150,7 @@ void freeThreadNodes(threadNode* head);
 void printThreadQueue(struct threadQueue* tempQueue);
 struct threadNode* getThreadNode(int threadID);
 void removeThreadNode(threadNode* findThreadNode);
+int getQueueSize(struct threadQueue* inputQueue);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t

@@ -17,9 +17,10 @@ ucontext_t schedulerContext; //context of scheduler
 int numThreads = 0;
 int ignoreSIGALRM = 0; //flag to avoid interrupt
 struct itimerval timerValue;
-struct sigaction sigAction;
+struct sigaction myAlarm;
 mypthread_mutex_t mutexLock;
 int count = 0;
+int init = 0;
 
 /*
     Threadwrapper function for use with threads to change state when done
@@ -33,14 +34,16 @@ void* threadWrapper(void * arg, void *(*function)(void*), int threadID,
         thread_func();
         tcb->status = DONE;
     */
-   //find threadID, set threadStatus to RUNNING
-   printf("--------IN WRAPPER----------\n");
-   threadNode* runningThread = tQueue->head;
-   runningThread->threadControlBlock->threadStatus = RUNNING;
+    //find threadID, set threadStatus to RUNNING
+    printf("--------IN WRAPPER----------\n");
+    printThreadQueue(tQueue);
+    threadNode* runningThread = tQueue->head;
+    runningThread->threadControlBlock->threadStatus = RUNNING;
 
-   //store return value
-   retVals[(int) runningThread->threadControlBlock->threadID] 
+    //store return value
+    retVals[(int) runningThread->threadControlBlock->threadID] 
             = (*function)(arg);
+    function(arg);
 
     //find thread ID, set threadStatus to FINISHED
    runningThread->threadControlBlock->threadStatus = FINISHED;  
@@ -50,6 +53,7 @@ void* threadWrapper(void * arg, void *(*function)(void*), int threadID,
    //time quantum -> switch to scheduler to schedule new thread
 
 }
+
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
                       void *(*function)(void*), void * arg) {
@@ -63,86 +67,85 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
        // YOUR CODE HERE
 
     /*
-        Steps to create a thread:
-        1. create Thread Control Block
-        2. create/get thread context
-            2a. during pthread_create, makecontext() will be used, we need to 
-                update the context structure before that
-        3. Create sighandler
-        4. initialize timer
-        4. Create Runqueue
-            3a. once thread context is set, add thread to scheduler runqueue (linked list/queue)
-        5. make threadwrapper function to change thread state after execution? check piazza
+        todo:
+        setitimer/sigmyAlarm not working?
+        have to check swaps/ignore flags?
 
     */
     //set flag to override SIGALRM for handler
     ignoreSIGALRM = 1;
-    
+    //SIGALRM_Handler();
     *thread = ++numThreads; //change value for every new thread
     printf("IN PTHREAD CREATE\n");
-    //create TCB
-    tcb* newTCB = malloc(sizeof(tcb));
-    newTCB->threadID = *thread;
-    newTCB->threadStatus = READY;
-    newTCB->elapsedQuantums = 0;
-    newTCB->hasDependents = 0;
 
-    //get context for new thread
-    ucontext_t newThreadContext;
-    getcontext(&newThreadContext);
-    if(getcontext(&newThreadContext) == -1){
-        perror("Initializing New Thread Context Failed.\n");
-        exit(EXIT_FAILURE);
-    }
+    /* Configure the timer to expire after 10 msec... */
 
-    newThreadContext.uc_stack.ss_sp = malloc(STACKSIZE);
-    if(newThreadContext.uc_stack.ss_sp <= 0){
-        printf("Memory not allocated for new thread: %d (%d)\n",
-                 newTCB->threadID, numThreads);
-        exit(EXIT_FAILURE);
-    }
+    if(init == 0){
+        //initialize everything
+        
+        printf("IN INIT\n");
 
-    //link to exit, when thread is done, cleanup and change status to done
-    //link to scheduler context? have to run scheduler anyway
-    newThreadContext.uc_link = &schedulerContext;
-    newThreadContext.uc_stack.ss_size = STACKSIZE;
-    newThreadContext.uc_stack.ss_flags = 0;
-
-    //set new thread context to TCB
-    newTCB->threadContext = newThreadContext;
-
-    //insert tcb into new threadnode
-    threadNode* newThreadNode = malloc(sizeof(threadNode));
-    newThreadNode->threadControlBlock = newTCB;
-    newThreadNode->next = NULL;
-    newThreadNode->prev = NULL;
-
-    //check if queue is empty/null
-
-    if(tQueue == NULL){
         //should go through this on first run of pthread_create
         //initialize timer, sighandler, contexts
         //initialize mutexes here?
         //initialize sigALRM timer
-        timerValue.it_value.tv_sec = QUANTUM / 1000;
-        //convert seconds to ms by dividing by 1000
-        timerValue.it_value.tv_usec = (QUANTUM * 1000);
-        //convert microseconds to milliseconds by multiplying by 1000
-        timerValue.it_interval = timerValue.it_value;
-        //set interval of timer, have to repeat this when sigalarm is called
-
         //initialize sigAction to 0
-        memset(&sigAction, 0, sizeof(struct sigaction));
-        //set sa_mask to empty set
-        sigemptyset(&(sigAction.sa_mask));
 
-        //set sigAction handler to user defined SIGARLM_handler
-        sigAction.sa_handler = SIGALRM_Handler;
-        if(sigaction(SIGALRM, &sigAction, NULL) == -1){
+        memset(&myAlarm, 0, sizeof(myAlarm));
+        myAlarm.sa_handler = &SIGALRM_Handler;
+        if(sigaction(SIGALRM, &myAlarm, NULL) < 0){
             //signal handler/sigaction failed?
             perror("SIGACTION failed\n");
             exit(EXIT_FAILURE);
         }
+        /* Configure the timer to expire after QUANTUM msec... */
+        timerValue.it_value.tv_sec = 0;
+        timerValue.it_value.tv_usec = (QUANTUM * 1000);
+        /* ... and every QUANTUM msec after that. */
+        timerValue.it_interval.tv_sec = 0;
+        timerValue.it_interval.tv_usec = (QUANTUM * 1000);
+        /* Start a virtual timer. It counts down whenever this process is
+        executing. */
+        setitimer(ITIMER_REAL, &timerValue, NULL);
+
+        //queue is empty/Null, make new queue
+        tQueue = malloc(sizeof(threadQueue));
+        tQueue->head = NULL;
+        tQueue->tail = NULL;
+
+        tcb* mainThreadTCB = malloc(sizeof(tcb));
+        mainThreadTCB->threadID = *thread;
+        mainThreadTCB->threadStatus = MAIN; 
+        mainThreadTCB->elapsedQuantums = INT_MAX;
+
+        threadNode* mainThread = malloc(sizeof(threadNode));
+        mainThread->threadControlBlock = mainThreadTCB;
+        mainThread->next = NULL;
+        mainThread->prev = NULL;
+
+        mainContext.uc_stack.ss_size = STACKSIZE; //set stack size
+        mainContext.uc_link = 0; //no parent?, main process
+        //uc_link is where we return to after thread completes
+        mainContext.uc_stack.ss_flags = 0;  //no flags on creation
+        //create context for main
+        mainContext.uc_stack.ss_sp = malloc(STACKSIZE); //create stack
+        
+        if(mainContext.uc_stack.ss_sp <= 0){
+            //check for memory allocation, end program if unsuccessful
+            perror("Memory Not Allocated for Main/Parent Stack, exiting\n");
+            exit(EXIT_FAILURE);
+        }
+
+        //insert into tQueue
+        tQueue->head = mainThread;
+        tQueue->tail = mainThread;
+        printf("main inserted into queue\n");
+
+        if(getcontext(&mainContext) == -1){
+            perror("Initializing Main Context Failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        mainThread->threadControlBlock->threadContext = mainContext;
 
         if(getcontext(&schedulerContext) == -1){
             perror("Initializing Scheduler Context Failed.\n");
@@ -162,107 +165,67 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         schedulerContext.uc_stack.ss_size = STACKSIZE;
         schedulerContext.uc_stack.ss_flags = 0;
 
-        //make context for scheduler here
-        /*
-            make threadNode for main? -> make tcb, set  threadnode->threadControlBlock, put into scheduler so that we can return to main once all threads finish?
-        */
-        //(void*)
-        makecontext(&schedulerContext, schedule, 0); 
-        newThreadContext.uc_link = &schedulerContext;
-        printf("scheduler context made\n");
+        makecontext(&schedulerContext, (void*)schedule, 0); 
+        *thread = ++numThreads;
+    }
 
-        //queue is empty/Null, make new queue
-        tQueue = malloc(sizeof(threadQueue));
-        tQueue->head = NULL;
-        tQueue->tail = NULL;
+    //create TCB
+    tcb* newTCB = malloc(sizeof(tcb));
+    newTCB->threadID = *thread;
+    newTCB->threadStatus = READY;
+    newTCB->elapsedQuantums = 0;
+    newTCB->hasDependents = 0;
+
+    //get context for new thread
+    ucontext_t newThreadContext;
+    if(getcontext(&newThreadContext) == -1){
+        perror("Initializing New Thread Context Failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    newThreadContext.uc_stack.ss_sp = malloc(STACKSIZE);
+    if(newThreadContext.uc_stack.ss_sp <= 0){
+        printf("Memory not allocated for new thread: %d (%d)\n",
+                 newTCB->threadID, numThreads);
+        exit(EXIT_FAILURE);
+    }
+
+    //link to exit, when thread is done, cleanup and change status to done
+    //link to scheduler context? have to run scheduler anyway
+    newThreadContext.uc_link = &schedulerContext;
+    newThreadContext.uc_stack.ss_size = STACKSIZE;
+    newThreadContext.uc_stack.ss_flags = 0;
+
+    //set new thread context to TCB
+    makecontext(&newThreadContext, (void*) function, 1, arg);
+    newTCB->threadContext = newThreadContext;
+    
+
+    //insert tcb into new threadnode
+    threadNode* newThreadNode = malloc(sizeof(threadNode));
+    newThreadNode->threadControlBlock = newTCB;
+    newThreadNode->prev = NULL;
+    newThreadNode->next = NULL;
+
+    if(init == 0){
         
-        //if scheduler is FIFO 
-        //********IMPLEMENT LOCKS/MUTEX HERE FOR THE QUEUE**********
-        printThreadQueue(tQueue);
-        if(tQueue->head == NULL){
-            //queue is empty/just initialized
-            printf("----------EMPTY LL ADDING NODE-------------\n");
-            tQueue->head = newThreadNode;
-            tQueue->tail = newThreadNode;
-            printThreadQueue(tQueue);
-        }
-        else{
-            //queue has nodes in it, append threadNode to rear
-            printf("----------NONEMPTY LL ADDING NODE-------------\n"); 
-            newThreadNode->prev = tQueue->tail;
-            newThreadNode->next = NULL;
-            tQueue->tail->next = newThreadNode;
-            tQueue->tail = newThreadNode;
-            printThreadQueue(tQueue);
-        }
-        
-        //is this initialized correctly? we never go into the thread wrapper?
-        makecontext(&newThreadContext, (void*) threadWrapper, 4, arg, function, (int) newTCB->threadID, tQueue->head);
-        newTCB->threadContext = newThreadContext;
+        threadNode* ptr = tQueue->head;
 
-        //create context for main
-        mainContext.uc_stack.ss_sp = malloc(STACKSIZE); //create stack
-        
-        if(mainContext.uc_stack.ss_sp <= 0){
-            //check for memory allocation, end program if unsuccessful
-            perror("Memory Not Allocated for Main/Parent Stack, exiting\n");
-            exit(EXIT_FAILURE);
-        }
-
-        tcb* mainThreadTCB = malloc(sizeof(tcb));
-        mainThreadTCB->threadID = *thread;
-        mainThreadTCB->threadStatus = MAIN; 
-        mainThreadTCB->elapsedQuantums = 0;
-
-        threadNode* mainThread = malloc(sizeof(threadNode));
-        mainThread->threadControlBlock = mainThreadTCB;
-        mainThread->next = NULL;
-        mainThread->prev = NULL;
-
-        mainContext.uc_stack.ss_size = STACKSIZE; //set stack size
-        mainContext.uc_link = 0; //no parent?, main process
-        //uc_link is where we return to after thread completes
-        mainContext.uc_stack.ss_flags = 0;  //no flags on creation
-
-        printf("main context made");
-        
-        if(getcontext(&mainContext) == -1){
-            perror("Initializing Main Context Failed.\n");
-            exit(EXIT_FAILURE);
-        }
-        //start timer here, will return immediately due to ignoreSIGALRM
-        SIGALRM_Handler();
-        mainThread->threadControlBlock->threadContext = mainContext;
-
+        tQueue->head = newThreadNode;
+        newThreadNode->next = ptr;
+        ptr->prev = newThreadNode;
+        init = 1;
     }
     else{
-        //trigger this branch if tQueue is not null / not first time
-        //through
-
-        //queue not null, insert threadNode into queue
-        //set new node to end of list, and change tail pointer
-                //if scheduler is FIFO 
-        //********IMPLEMENT LOCKS/MUTEX HERE FOR THE QUEUE**********
-        if(tQueue->head == NULL){
-            //queue is empty/just initialized
-            tQueue->head = newThreadNode;
-            tQueue->tail = newThreadNode;
-        }
-        else{
-            //queue has nodes in it, append threadNode to rear
-            newThreadNode->prev = tQueue->tail;
-            newThreadNode->next = NULL;
-            tQueue->tail->next = newThreadNode;
-            tQueue->tail = newThreadNode;
-        }
-        makecontext(&newThreadContext, (void*) threadWrapper, 4, arg, function, (int) newTCB->threadID, tQueue->head);
-        newTCB->threadContext = newThreadContext;
-        //this is for FIFO, work on other criteria for when we 
-        //implement STCF
-        //if scheduler is STCF - preemptive shortest job first
+        //add new node to end of queue
+        tQueue->tail->next = newThreadNode;
+        newThreadNode->prev = tQueue->tail;
+        tQueue->tail = newThreadNode;
     }
-    printf("\nTHREAD CREATED\n");
-    printThreadQueue(tQueue);
+
+
+    printf("\n-----------THREAD CREATED----------------\n");
+    //printThreadQueue(tQueue);
 
     //TODO
     //create algo to find smallest timeElapsed
@@ -273,10 +236,13 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     //assign thread context to run with threadWrapper/function called in actual
     //program (not this library)
     
-
-    
+    if(getcontext(&mainContext) == -1){
+        perror("Initializing Main Context Failed.\n");
+        exit(EXIT_FAILURE);
+    }
     //remove timer block
     ignoreSIGALRM = 0; 
+    //SIGALRM_Handler();
     return 0;
 };
 
@@ -406,6 +372,7 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
         //update LL here, send threadNode behind thread that we are waiting on?
         ignoreSIGALRM = 0;
         SIGALRM_Handler(); //handle joined thread
+        //infinite loop here?
         
         if(value_ptr != NULL){
             //save return value
@@ -417,6 +384,7 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
         removeThreadNode(waitForThisThread);
         return 0;
     }
+    printf("HOW ARE YOU HERE? PTHREAD_JOIN\n");
     
 };
 
@@ -516,7 +484,7 @@ static void sched_fifo() {
             - adjust queue afterwards
         - job should remain runnning?
     */
-    //block alarm
+    //block myAlarm
     ignoreSIGALRM = 1;
     if(tQueue->head == NULL){
         printf("Empty Queue, check logic?\n");
@@ -524,11 +492,7 @@ static void sched_fifo() {
     printf("\n----------IN FIFO SCHEDULER (START)--------\n");
     printThreadQueue(tQueue);
     putchar('\n');
-    /*
-    count++;
-    if(count == 10){
-        abort();
-    }*/
+
     threadNode* currRunningThread = tQueue->head;
     //thread should already be running thanks to threadWrapper()
     //currThread->threadControlBlock->threadStatus = RUNNING;
@@ -548,10 +512,37 @@ static void sched_fifo() {
         currRunningThread->threadControlBlock->threadStatus == MAIN)
     {
         //main thread, or no nodes left in queue
-        printf("sched_fifo: no nodes left in queue/main?\n");
+        
         printThreadQueue(tQueue);
-        ignoreSIGALRM = 0;
-        setcontext(&mainContext);
+        if(getQueueSize(tQueue) == 1){
+            //main is only node in queue
+            printf("sched_fifo: no nodes left in queue/main?\n");
+            ignoreSIGALRM = 0;
+            setcontext(&mainContext);
+        }
+        else{
+            //main not only node in queue, move to back
+            printf("sched_fifo: main first in queue, let other nodes go first?\n");
+            threadNode* ptr = tQueue->head;
+            
+            tQueue->head = tQueue->head->next;
+            ptr->next = NULL;
+            ptr->prev = NULL;
+            tQueue->head->prev = NULL;
+
+            ptr->prev = tQueue->tail;
+            tQueue->tail->next = ptr;
+            tQueue->tail = ptr;
+
+            printf("sched_fifo: moving main\n");
+            printThreadQueue(tQueue);
+            //switch to next thread in queue
+            ignoreSIGALRM = 0;
+            swapcontext(&mainContext, 
+                        &schedulerContext);
+            
+        }
+
     }
     else if(currRunningThread->threadControlBlock->threadStatus == RUNNING){
         //swap back to thread context?
@@ -621,43 +612,30 @@ static void sched_mlfq() {
     SIGALRM Handler, swaps context to scheduler every time QUANTUM is elapsed, and SIGALRM is called.
 */
 static void SIGALRM_Handler(){
-    /*
     count++;
-    if(count == 15){
-        printf("ABORTING\n");
+    if(count >= 15){
         abort();
     }
-    */
     printf("\n------IN SIGALRM HANDLER------\n");
-    //initialize sigALRM timer
-    timerValue.it_value.tv_sec = QUANTUM / 1000;
-    //convert seconds to ms by dividing by 1000
-    timerValue.it_value.tv_usec = (QUANTUM * 1000);
-    //convert microseconds to milliseconds by multiplying by 1000
-    timerValue.it_interval = timerValue.it_value;
-    //set interval of timer, have to repeat this when sigalarm is called
-
-    //condition resets and sets timer to QUANTUM
-    if(setitimer(ITIMER_REAL, &timerValue, NULL) == -1){
-        //setitimer error
-        perror("Error setting timer (setitimer())\n");
-        exit(EXIT_FAILURE);
-    }
-    //reset timer to quantum (10ms)
     if(ignoreSIGALRM == 1){
-        //flag to ignore alarms
+        //flag to ignore myAlarms
         printf("SIGALRM HANDLER EXIT EARLY\n");
         return;
     }
-    ignoreSIGALRM == 1;
+    ignoreSIGALRM = 1;
+    printThreadQueue(tQueue);
 
     //swap context to next in queue? ->change to scheduler
     //check status of currThread and next priority thread
 
     //this is for FIFO, may need to adjust for STCF
     threadNode* currThread = tQueue->head;
-    if(currThread == NULL || 
-        currThread->threadControlBlock->threadStatus == READY){
+    if(currThread == NULL){
+        //shouldn't be here? should have something in queue, main should be last one
+        printf("SIGALRM: NO QUEUE OR NULL\n");
+        abort();
+    } 
+    if(currThread->threadControlBlock->threadStatus == MAIN){
         //main thread, switch to scheduler
         //getcontext(&mainContext);
         printf("SIGALRM Handler: SWAP TO scheduler------\n");
@@ -666,33 +644,38 @@ static void SIGALRM_Handler(){
             perror("Swap Context Error between main and scheduler\n");
             exit(EXIT_FAILURE);
         }
-        return;
         
     }
-    else{
-        //current Thread was running/done
-
-        //save current thread state?
-        if(currThread->threadControlBlock->threadStatus == RUNNING){
-            //update elapsed quantums here?
-            //check logic here
+    else if (currThread->threadControlBlock->threadStatus == RUNNING){
+        //current Thread was running
+        //update elapsed quantums here?
+        //check logic here - do we have to save thread state?
         
-            currThread->threadControlBlock->elapsedQuantums++;
-            
-        }
+        currThread->threadControlBlock->elapsedQuantums++;
 
-        printf("SWAP TO THREAD FROM SCHEDULER------\n");
+        printf("SAH: RUNNING - SWAP TO THREAD FROM SCHEDULER------\n");
         if(swapcontext(&currThread->threadControlBlock->threadContext, 
                         &schedulerContext) == -1){
             //error swapping current thread with scheduler
             perror("Swap context between thread and scheduler failed\n");
             exit(EXIT_FAILURE);
         }
-        return;
         
     }
-    printf("END OF SIGALARM HANDLER\n");
-    //schedule();
+    else if(currThread->threadControlBlock->threadStatus == READY){
+        //start this thread?
+        printf("SAH: READY - SWAP TO THREAD FROM SCHEDULER------\n");
+        printThreadQueue(tQueue);
+        currThread->threadControlBlock->threadStatus == RUNNING;
+        if(swapcontext(&currThread->threadControlBlock->threadContext, 
+                        &schedulerContext) == -1){
+            //error swapping current thread with scheduler
+            perror("Swap context between thread and scheduler failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    ignoreSIGALRM = 0;
+    return;
 
 }
 
@@ -730,8 +713,8 @@ void freeThreadNodes(threadNode* head){
 void printThreadQueue(struct threadQueue* tempQueue){
     ignoreSIGALRM = 1;
     printf("------THREAD QUEUE-----------\n");
-    if(tempQueue->head == NULL || tempQueue->head == 0){
-        printf("Queue is empty\n");
+    if(tempQueue == NULL || tempQueue->head == NULL){
+        printf("Queue is empty or NULL\n");
         return;
     }
     int count = 1;
@@ -746,6 +729,10 @@ void printThreadQueue(struct threadQueue* tempQueue){
 
         ptr = ptr->next;
         count++;
+        if(count >= 15){
+            printf("TOO MANY NODES\n");
+            abort();
+        }
     }
     printf("LIST DONE\n");
 }
@@ -757,11 +744,12 @@ struct threadNode* getThreadNode(int threadID){
     ignoreSIGALRM = 1;
     threadNode* ptr = tQueue->head;
 
-    printThreadQueue(tQueue);
+    //printThreadQueue(tQueue);
 
     while(ptr != NULL){
-        if((int) ptr->threadControlBlock->threadID == threadID){
+        if((int) ptr->threadControlBlock->threadID == (int) threadID){
             //match found
+            printf("getThreadNode: node found\n");
             return ptr;
         }
     }
@@ -777,7 +765,7 @@ struct threadNode* getThreadNode(int threadID){
 void removeThreadNode(threadNode* findThreadNode){
     //probably need locks/mutex in this function
     ignoreSIGALRM = 1;
-
+    printf("remove thread node\n");
     if(tQueue == NULL || tQueue->head == NULL){
         //shouldn't be null if we're here, but have to check
         printf("removeThreadNode: tQueue or tQueue head is null\n");
@@ -823,5 +811,22 @@ void removeThreadNode(threadNode* findThreadNode){
     }
     printf("no match found\n");
     return;
+}
+/*
+    Utility function for counting number of nodes in queue
+*/
+int getQueueSize(struct threadQueue* inputQueue){
+    printf("getQueueSize\n");
+    if(inputQueue == NULL || inputQueue->head == NULL){
+        printf("NOTHING IN QUEUE\n");
+        return 0;
+    }
+    struct threadNode* ptr = inputQueue->head;
+    int count = 0;
+    while(ptr != NULL){
+        count++;
+        ptr = ptr->next;
+    }
+    return count;
 }
 

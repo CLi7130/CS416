@@ -13,39 +13,50 @@
 
 void *thread(void *arg) {
   
-  for(int i = 0; i < 5; i++){
+  int i = 0;
+  while(1){
       printf("%d. hello from %d\n", i, (int) arg);
+      //sleep(100000);
+      i++;
+      if(i >= 200){
+          break;
+      }
   }
   
 }
 
+void timer_handler (int signum){
+
+ static int count = 0;
+ printf ("timer expired %d times\n", ++count);
+
+}
+
 
 int main(int argc, char **argv) {
+
     mypthread_t* tids;
     void *ret;
-    int numThreads = 4;
+    int numThreads = 5;
     int err = 0;
 
     tids = malloc(numThreads * sizeof(mypthread_t));
-    /*
-    if (mypthread_create(&thid, NULL, thread, "thread 1") != 0) {
-        perror("pthread_create() error");
-        exit(1);
-    }
-
-    if (mypthread_join(thid, &ret) != 0) {
-        perror("pthread_create() error");
-        exit(3);
-    }*/
 
     for(int i = 0; i < numThreads; i++){
         err = mypthread_create(&tids[i], NULL, thread, i);
+        //while(1);
         printf("thread %d created\n", i);
         if(err != 0){
             perror("pthread_create\n");
         }
     }
-    
+
+    for(int i = 0; i < 100; i++){
+        printf("%d. Sleeping In the main function;\n", i);
+        sleep(5);
+        
+    }
+
     for(int i = 0; i < numThreads; i++){
         mypthread_join(tids[i], NULL);
         printf("thread %d joined\n", i);
@@ -54,4 +65,5 @@ int main(int argc, char **argv) {
     printf("thread exited with\n");
     free(tids);
 	return 0;
+    
 }
