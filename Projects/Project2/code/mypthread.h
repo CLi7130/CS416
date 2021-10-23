@@ -145,6 +145,7 @@ int getQueueSize(struct tcbNode* inputQueue);
 void finishThread(int threadID);
 void initTimer();
 void initMain();
+void exitCleanup(void);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t

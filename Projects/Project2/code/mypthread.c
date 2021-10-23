@@ -12,10 +12,6 @@
 
 
 static tcbNode* tQueue = NULL; //thread queue
-//threadNode* currRunningThread = NULL; //currently running thread
-static ucontext_t mainContext; //context of parent/main?
-static ucontext_t schedulerContext; //context of scheduler
-
 static mypthread_t currThread;
 static tcb* currTCB;
 
@@ -43,6 +39,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
     if(newThreadID == 0){
         //initialization for first time through
+        //set timer and main TCB
         initTimer();
         initMain();
         newThreadID++;
@@ -481,4 +478,16 @@ void initMain(){
     currTCB = mainTCB;
     getcontext(&(currTCB->threadContext));
 
+}
+
+void exitCleanup(void){
+    PQueue* Li = ThreadQueue;
+    while(Li != NULL){
+        PQueue* temp = Li;
+        Li = Li->next;
+        free(temp->control->context.uc_stack.ss_sp);
+        free(temp->control);
+        free(temp);
+    }
+    free(runningBlock);
 }
