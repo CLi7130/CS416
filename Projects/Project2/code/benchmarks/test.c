@@ -12,22 +12,22 @@
  */
 
 void *thread(void *arg) {
-  /*
-  int i = 0;
-  while(1){
-      printf("%d. hello from %d\n", i, (int) arg);
-      //sleep(100000);
-      i++;
-      if(i >= 200){
-          break;
-      }
-  }*/
-  int i = 0;
-  while(i < 20){
+    /*
+    int i = 0;
+    while(1){
+        printf("%d. hello from %d\n", i, (int) arg);
+        //sleep(100000);
+        i++;
+        if(i >= 200){
+            break;
+        }
+    }*/
     printf("\n~~~~~~~~~~~~~~~~IN THE THREAD FUNCTION~~~~~~~~~~~~~~~~~~~~~\n");
     printf(" hello from %d\n", (int) arg);
-    i++;
-  }
+    //spin until interrupt
+   //for(int i = 0; i < 5000; i++){ //i, arg);
+   // }
+
   
 }
 
@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 
     mypthread_t* tids;
     void *ret;
-    int numThreads = 5;
+    int numThreads = 1;
     int err = 0;
 
     tids = malloc(numThreads * sizeof(mypthread_t));
@@ -56,27 +56,15 @@ int main(int argc, char **argv) {
             perror("pthread_create\n");
         }
     }
-
-    for(int i = 0; i < 100; i++){
-        printf("%d. Sleeping In the main function;\n", i);
-        int count = 0;
-
-        //terrible attempt at recreating sleep, so we don't
-        //have to use sigalarm
-        while(1){
-            count++;
-            if(count == 500000000){
-                break;
-            }
-        }
-        
+    
+    for(int i = 0; i < 50000; i++){
+        printf("%d. ------------Sleeping In the main function;--------\n", i);
     }
 
     for(int i = 0; i < numThreads; i++){
         printf("~~~~~~~~~~~~~~~~~MAIN: IN PTHREAD_JOIN~~~~~~~~~~~~~~~~~~\n");
         printf("thread %d joined\n", i);
         mypthread_join(tids[i], NULL);
-        
     }
     
     printf("thread exited with\n");

@@ -32,8 +32,10 @@ test:
 	make && \
 	./test
 
-cleanTest:
+pcal:
+	make clean
+	make
 	cd benchmarks && \
 	make clean && \
-	cd .. && \
-	make clean
+	make pcal && \
+	./pcal 3

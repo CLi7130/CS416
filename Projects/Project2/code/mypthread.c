@@ -10,49 +10,21 @@
 // YOUR CODE HERE
 
 
-threadQueue* tQueue = NULL; //thread queue
+static threadQueue* tQueue = NULL; //thread queue
 //threadNode* currRunningThread = NULL; //currently running thread
-ucontext_t mainContext; //context of parent/main?
-ucontext_t schedulerContext; //context of scheduler
-int numThreads = 0;
+static ucontext_t mainContext; //context of parent/main?
+static ucontext_t schedulerContext; //context of scheduler
+static int numThreads = 0;
 static int ignoreSIGALRM = 0; //flag to avoid interrupt
-static struct itimerval timerValue;
-static struct sigaction myAlarm;
+struct itimerval timerValue;
+struct sigaction timer;
 mypthread_mutex_t mutexLock;
 int count = 0;
-int init = 0;
+static int init = 0;
 
-/*
-    Threadwrapper function for use with threads to change state when done
-*/
-void* threadWrapper(void * arg, void *(*function)(void*), int threadID,
-                    threadQueue* tQueue){
-    /*
-    void thread_wrapper_func(thread_func) {
-
-        tcb->status = RUNNING;
-        thread_func();
-        tcb->status = DONE;
-    */
-    //find threadID, set threadStatus to RUNNING
-    printf("--------IN WRAPPER----------\n");
-    printThreadQueue(tQueue);
-    threadNode* runningThread = tQueue->head;
-    runningThread->threadControlBlock->threadStatus = RUNNING;
-
-    //store return value
-    retVals[(int) runningThread->threadControlBlock->threadID] 
-            = (*function)(arg);
-    function(arg);
-
-    //find thread ID, set threadStatus to FINISHED
-   runningThread->threadControlBlock->threadStatus = FINISHED;  
-   //SIGALRM_Handler();
-   //potentially change to scheduler here?
-   //***if we are at this point, the function has finished running within the
-   //time quantum -> switch to scheduler to schedule new thread
-
-}
+#ifndef DEBUG
+#define DEBUG 1
+#endif
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
@@ -76,38 +48,41 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     ignoreSIGALRM = 1;
     //SIGALRM_Handler();
     *thread = ++numThreads; //change value for every new thread
-    printf("IN PTHREAD CREATE\n");
+    if(DEBUG){
+        printf("IN PTHREAD CREATE\n");
+    }
 
     /* Configure the timer to expire after 10 msec... */
 
     if(init == 0){
         //initialize everything
-        
-        printf("IN INIT\n");
+        init = 1;
+        if(DEBUG){
+            printf("IN INIT\n");
+        }
 
         //should go through this on first run of pthread_create
         //initialize timer, sighandler, contexts
         //initialize mutexes here?
         //initialize sigALRM timer
         //initialize sigAction to 0
-
-        memset(&myAlarm, 0, sizeof(myAlarm));
-        myAlarm.sa_handler = &SIGALRM_Handler;
-        if(sigaction(SIGALRM, &myAlarm, NULL) < 0){
+        
+        memset(&timer, 0, sizeof(timer));
+        timer.sa_handler = &SIGALRM_Handler;
+        if(sigaction(SIGALRM, &timer, NULL) < 0){//use SIGPROF/ITIMER_PROF?
             //signal handler/sigaction failed?
             perror("SIGACTION failed\n");
             exit(EXIT_FAILURE);
         }
-        /* Configure the timer to expire after QUANTUM msec... */
+        // Configure the timer to expire after QUANTUM msec... 
         timerValue.it_value.tv_sec = 0;
         timerValue.it_value.tv_usec = (QUANTUM * 1000);
-        /* ... and every QUANTUM msec after that. */
+        // ... and every QUANTUM msec after that. 
         timerValue.it_interval.tv_sec = 0;
         timerValue.it_interval.tv_usec = (QUANTUM * 1000);
-        /* Start a virtual timer. It counts down whenever this process is
-        executing. */
+        // Start a .timer.
         setitimer(ITIMER_REAL, &timerValue, NULL);
-
+        
         //queue is empty/Null, make new queue
         tQueue = malloc(sizeof(threadQueue));
         tQueue->head = NULL;
@@ -124,7 +99,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         mainThread->prev = NULL;
 
         mainContext.uc_stack.ss_size = STACKSIZE; //set stack size
-        mainContext.uc_link = 0; //no parent?, main process
+        //mainContext.uc_link = 0; //no parent?, main process
         //uc_link is where we return to after thread completes
         mainContext.uc_stack.ss_flags = 0;  //no flags on creation
         //create context for main
@@ -139,7 +114,9 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         //insert into tQueue
         tQueue->head = mainThread;
         tQueue->tail = mainThread;
-        printf("main inserted into queue\n");
+        if(DEBUG){
+            printf("main inserted into queue\n");
+        }
 
         if(getcontext(&mainContext) == -1){
             perror("Initializing Main Context Failed.\n");
@@ -235,7 +212,8 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     tQueue->tail->next = newThreadNode;
     newThreadNode->prev = tQueue->tail;
     tQueue->tail = newThreadNode;
-    if(init == 0){
+
+    //if(init == 0){
         /*
         threadNode* ptr = tQueue->head;
 
@@ -243,16 +221,18 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         newThreadNode->next = ptr;
         ptr->prev = newThreadNode;
         */
-        init = 1;
-        if(getcontext(&mainContext) == -1){
-            perror("Initializing Main Context Failed.\n");
-            exit(EXIT_FAILURE);
-        }
+        //
+    if(getcontext(&mainContext) == -1){
+        perror("Initializing Main Context Failed.\n");
+        exit(EXIT_FAILURE);
     }
+  //  }
     
 
 
-    printf("\n-----------THREAD CREATED----------------\n");
+    if(DEBUG){
+        printf("\n-----------THREAD CREATED----------------\n");
+    }
     //printThreadQueue(tQueue);
 
     //TODO
@@ -267,7 +247,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
     //remove timer block
     ignoreSIGALRM = 0; 
-    //SIGALRM_Handler();
+    SIGALRM_Handler();
     return 0;
 };
 
@@ -285,7 +265,10 @@ int mypthread_yield() {
     //would have to use TCB-> for other schedulers?
     //
     ignoreSIGALRM = 1;
-    printf("----------IN PTHREAD_YIELD------------\n");
+    if(DEBUG){
+        printf("----------IN PTHREAD_YIELD------------\n");
+        //abort();
+    }
     if(tQueue == NULL || tQueue->head == NULL){
         //somehow queue is null or empty, just return
         printf("Pthread_Yield: Empty Queue?\n");
@@ -293,7 +276,9 @@ int mypthread_yield() {
     }
     if(tQueue->head->threadControlBlock->threadStatus == RUNNING){
         //find next thread that is READY
-        printf("pthread_yield: head is running, find next ready node\n");
+        if(DEBUG){
+            printf("pthread_yield: head is running, find next ready node\n");
+        }
         threadNode* ptr = tQueue->head->next;
         threadNode* yieldedPTR = tQueue->head;
         
@@ -326,7 +311,9 @@ void mypthread_exit(void *value_ptr) {
 
 	// YOUR CODE HERE
     ignoreSIGALRM = 1;
-    printf("\n-----------IN PTHREAD_EXIT---------\n");
+    if(DEBUG){
+        printf("\n-----------IN PTHREAD_EXIT---------\n");
+    }
     //make sure you release locks possessed by this thread
     //how to get threadID in this function?
     tQueue->head->threadControlBlock->threadStatus = FINISHED;
@@ -356,17 +343,67 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
         have correct ordering of next thread. Can multiple threads join?
     */
     ignoreSIGALRM = 1;
-    printf("-----------IN MYPTHREAD JOIN--------\n");
-    printThreadQueue(tQueue);
-    printf("pthread_join: FIND THREAD %d\n", (int) thread);
+    if(DEBUG){
+        printf("-----------IN MYPTHREAD JOIN--------\n");
+        printThreadQueue(tQueue);
+        printf("pthread_join: FIND THREAD %d\n", (int) thread);
+    }
     threadNode* waitForThisThread = getThreadNode(thread);
     //fix this, thread to join has to be marked, joinee is put as waiting.
     //waitForThisThread->threadControlBlock->threadStatus = ;
-    printf("FOUND THREAD\n");
+    if(DEBUG){
+        printf("FOUND THREAD\n");
+    }
+    threadNode* ptr = tQueue->head;
+    threadNode* joinNode = tQueue->head;
 
+    while(ptr != NULL){
+        if(ptr->threadControlBlock->threadID ==       
+            waitForThisThread->threadControlBlock->threadID){
+                //place current thread behind this thread, have to wait for it to finish.
+                //may need to use WAITING instead of READY here.
+            //waitForThisThread->threadControlBlock->threadStatus = READY;
+
+            //move from front of queue to behind waitForThisThread
+            tQueue->head = tQueue->head->next;
+            tQueue->head->prev = NULL;
+            joinNode->next = NULL;
+
+            if(ptr->next == NULL){
+                tQueue->tail = joinNode;
+                ptr->next = joinNode;
+                joinNode->next = NULL;
+            }
+            else{
+                ptr->next->prev = joinNode;
+                joinNode->next = ptr->next;
+                ptr->next = joinNode;
+            }
+
+            if(value_ptr != NULL){
+                //have to save return value
+                *value_ptr = retVals[(int) thread];
+            }
+            printThreadQueue(tQueue);
+            ignoreSIGALRM = 0;
+            SIGALRM_Handler();
+
+        }
+        ptr = ptr->next;
+    }
+    ignoreSIGALRM = 0;
+    SIGALRM_Handler();
+    //node not found
+    //abort();
+
+
+
+    /*
     //thread not in queue
     if(waitForThisThread == NULL){
-        printf("pthread_yield: THIS THREAD NOT IN QUEUE\n");
+        if(DEBUG){
+            printf("pthread_yield: THIS THREAD NOT IN QUEUE\n");
+        }
         if(value_ptr != NULL){
             //have to save return value
             *value_ptr = retVals[(int) thread];
@@ -376,7 +413,9 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
     }    
     else if(waitForThisThread->threadControlBlock->threadStatus == FINISHED){
         //thread is done or already removed from queue
-        printf("pthread_yield: THIS THREAD IS FINISHED\n");
+        if(DEBUG){
+            printf("pthread_yield: THIS THREAD IS FINISHED\n");
+        }
         if(value_ptr != NULL){
             //save return value
             *value_ptr = 
@@ -387,10 +426,16 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
         ignoreSIGALRM = 0;
         return 0;
     }
+    else if(waitForThisThread->threadControlBlock->threadStatus == READY){
+        //move current node behind this node?
+
+    }
     else{
         //thread is still running, yield this thread until waitForThisThread
         //finishes
-        printf("pthread_yield: THIS THREAD IS NOT FINISHED\n");
+        if(DEBUG){
+            printf("pthread_yield: THIS THREAD IS NOT FINISHED\n");
+        }
         //signifies that other threads are waiting on this one
         waitForThisThread->threadControlBlock->hasDependents = 1;
         //update LL here, send threadNode behind thread that we are waiting on?
@@ -404,11 +449,18 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
                 retVals[(int) thread];
         }
         //come back here to test functionality
-        printf("ABORT HERE, CHANGE ME\n");
+        if(DEBUG){
+            printf("ABORT HERE, CHANGE ME\n");
+        }
+
         removeThreadNode(waitForThisThread);
         return 0;
     }
-    printf("HOW ARE YOU HERE? PTHREAD_JOIN\n");
+
+    if(DEBUG){
+        printf("HOW ARE YOU HERE? PTHREAD_JOIN\n"); 
+    }*/
+
     
 };
 
@@ -459,7 +511,10 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex) {
 void finishThread(int threadID){
     ignoreSIGALRM = 1;
     threadNode* finishedThread = getThreadNode(threadID);
-    printf("~~~~~~~~~~~~IN FINISH THREAD FUNCTION~~~~~~~~~~~~~~~~~\n");
+    if(DEBUG){
+        printf("~~~~~~~~~~~~IN FINISH THREAD FUNCTION~~~~~~~~~~~~~~~~~\n");
+    }
+
     if(finishedThread == NULL || finishedThread->threadControlBlock == NULL){
         perror("TRYING TO FIND DELETED JOB\n");
         exit(EXIT_FAILURE);
@@ -492,8 +547,11 @@ static void schedule() {
 
     // schedule policy 
     //- can change this to if statements based on comment above?
-    printf("\n-----------IN SCHEDULE---------\n");
-
+    if(DEBUG){
+        printf("\n-----------IN SCHEDULE---------\n");
+    }
+    
+    ignoreSIGALRM = 1;
     #ifndef MLFQ
         // Choose STCF
 
@@ -527,13 +585,14 @@ static void sched_fifo() {
         - job should remain runnning?
     */
     //block myAlarm
-    ignoreSIGALRM = 1;
+    
     if(tQueue->head == NULL){
         printf("Empty Queue, check logic?\n");
     }
-    printf("\n----------IN FIFO SCHEDULER (START)--------\n");
-    printThreadQueue(tQueue);
-    putchar('\n');
+    if(DEBUG){
+        printf("\n----------IN FIFO SCHEDULER (START)--------\n");
+        printThreadQueue(tQueue);
+    }
 
     threadNode* currRunningThread = tQueue->head;
     status currStatus = currRunningThread->threadControlBlock->threadStatus;
@@ -554,17 +613,25 @@ static void sched_fifo() {
    if(currRunningThread == NULL || currStatus == MAIN){
         //main thread, or no nodes left in queue
         
-        printThreadQueue(tQueue);
+        if(DEBUG){
+            printThreadQueue(tQueue);
+        }
         if(getQueueSize(tQueue) == 1 && 
                 tQueue->head->threadControlBlock->threadStatus == MAIN){
-            //main is only node in queue
+            //main is only node in queue,don't have to ignore sigalrm anymore? 
             printf("sched_fifo: no nodes left in queue/main?\n");
             ignoreSIGALRM = 0;
+
+            removeThreadNode(tQueue->head);
+            tQueue->head == NULL;
+            tQueue->tail == NULL;
             setcontext(&mainContext);
         }
         else{
             //main not only node in queue, move to back
-            printf("sched_fifo: main first in queue, let other nodes go first?\n");
+            if(DEBUG){
+                printf("sched_fifo: main first in queue let other nodes go first?\n");
+            }
             threadNode* ptr = tQueue->head;
             threadNode* iterator = tQueue->head->next;
             
@@ -577,13 +644,13 @@ static void sched_fifo() {
             ptr->prev = tQueue->tail;
             tQueue->tail->next = ptr;
             tQueue->tail = ptr;
-
-            printf("sched_fifo: moving main\n");
-            printThreadQueue(tQueue);
+            if(DEBUG){
+                printf("sched_fifo: moving main\n");
+                printThreadQueue(tQueue);
+            }
             //switch to next thread in queue
             ignoreSIGALRM = 0;
-            swapcontext(&mainContext, 
-                        &schedulerContext);
+            setcontext(&schedulerContext);
             
         }
 
@@ -591,8 +658,12 @@ static void sched_fifo() {
     else if(currStatus == RUNNING){
         //swap back to thread context?
         //fifo runs until completion.
-        printf("sched_fifo: job not done in fifo, resuming thread\n");
-        printThreadQueue(tQueue);
+        if(DEBUG){
+            printf("sched_fifo: job not done in fifo, resuming thread\n");
+            printf("INCREASING ELAPSED QUANTUMS\n");
+            printThreadQueue(tQueue);
+        }
+        currRunningThread->threadControlBlock->elapsedQuantums++;
         ignoreSIGALRM = 0;
         swapcontext(&currRunningThread->threadControlBlock->threadContext, 
                     &schedulerContext);
@@ -601,28 +672,36 @@ static void sched_fifo() {
     else if(currStatus == FINISHED){
         //thread is done working, remove from queue
         //alert all threads waiting on this thread?
-        printf("sched_fifo: job done, remove from queue\n");
-        printThreadQueue(tQueue);
+        if(DEBUG){
+            printf("sched_fifo: job done, remove from queue\n");
+            printThreadQueue(tQueue);
+        }
         removeThreadNode(currRunningThread);
+        printThreadQueue(tQueue);
         if(tQueue->head != NULL){
             //still have nodes in the queue
             ignoreSIGALRM = 0;
             setcontext(&schedulerContext);
         }
+
     }
     else if(currStatus == READY){
         //shouldn't be here? this means that the thread hasn't started
         //running...could be from yield
-        printf("sched_fifo: thread not started\n");
+        if(DEBUG){
+            printf("sched_fifo: thread not started\n");
+        }
         currRunningThread->threadControlBlock->threadStatus = RUNNING;
         printThreadQueue(tQueue);
-        
+        ignoreSIGALRM = 0;
         setcontext(&currRunningThread->threadControlBlock->threadContext);
     }
     
 
     //shouldn't ever get here.
-    printf("You shouldn't be at the end of sched_fifo. Why is that?\n");
+    if(DEBUG){
+        printf("You shouldn't be at the end of sched_fifo. Why is that?\n");
+    }
 
 }
 
@@ -654,13 +733,17 @@ static void sched_mlfq() {
 static void SIGALRM_Handler(){
     /*
     count++;
-    if(count == 7){
+    if(count == 40){
         abort();
     }*/
-    printf("\n------IN SIGALRM HANDLER------\n");
+    if(DEBUG){
+        printf("\n------IN SIGALRM HANDLER------\n");
+    }
     if(ignoreSIGALRM == 1){
         //flag to ignore myAlarms
-        printf("SIGALRM HANDLER EXIT EARLY\n");
+        if(DEBUG){
+            printf("SIGALRM HANDLER EXIT EARLY\n");
+        }
         return;
     }
     ignoreSIGALRM = 1;
@@ -673,13 +756,19 @@ static void SIGALRM_Handler(){
     threadNode* currThread = tQueue->head;
     if(currThread == NULL){
         //shouldn't be here? should have something in queue, main should be last one
-        printf("SIGALRM: NO QUEUE OR NULL\n");
-        abort();
+        if(DEBUG){
+            printf("SIGALRM: NO QUEUE OR NULL\n");
+        }
+        //abort();
+
     } 
     if(currThread->threadControlBlock->threadStatus == MAIN){
         //main thread, switch to scheduler
         //getcontext(&mainContext);
-        printf("SIGALRM Handler: SWAP MAIN TO scheduler------\n");
+        if(DEBUG){
+            printf("SIGALRM Handler: SWAP MAIN TO scheduler------\n");
+        }
+        ignoreSIGALRM = 0;
         if(swapcontext(&mainContext, &schedulerContext) == -1){
             //error swapping context
             perror("Swap Context Error between main and scheduler\n");
@@ -691,8 +780,6 @@ static void SIGALRM_Handler(){
         //current Thread was running
         //update elapsed quantums here?
         //check logic here - do we have to save thread state?
-        printf("INCREASING ELAPSED QUANTUMS\n");
-        currThread->threadControlBlock->elapsedQuantums++;
         printf("SAH: RUNNING - SWAP TO THREAD FROM SCHEDULER------\n");
 
         if(swapcontext(&currThread->threadControlBlock->threadContext, 
@@ -705,7 +792,9 @@ static void SIGALRM_Handler(){
     }
     else if(currThread->threadControlBlock->threadStatus == READY){
         //start this thread?
-        printf("SAH: READY - SWAP TO THREAD FROM SCHEDULER------\n");
+        if(DEBUG){
+            printf("SAH: READY - SWAP TO THREAD FROM SCHEDULER------\n");
+        }
         printThreadQueue(tQueue);
         currThread->threadControlBlock->threadStatus == RUNNING;
         if(swapcontext(&currThread->threadControlBlock->threadContext, 
@@ -715,8 +804,7 @@ static void SIGALRM_Handler(){
             exit(EXIT_FAILURE);
         }
     }
-    ignoreSIGALRM = 0;
-    return;
+
 
 }
 
@@ -726,6 +814,7 @@ static void SIGALRM_Handler(){
 void freeThreadNode(threadNode* deleteNode){
     
     free(deleteNode->threadControlBlock->threadContext.uc_stack.ss_sp);
+    free(deleteNode->threadControlBlock->retContext.uc_stack.ss_sp);
     free(deleteNode->threadControlBlock);
     free(deleteNode);
 }
@@ -771,7 +860,9 @@ void printThreadQueue(struct threadQueue* tempQueue){
         ptr = ptr->next;
         count++;
     }
-    printf("LIST DONE\n");
+    if(DEBUG){
+        printf("LIST DONE\n");
+    }
 }
 
 /*
@@ -786,12 +877,16 @@ struct threadNode* getThreadNode(int threadID){
     while(ptr != NULL){
         if((int) ptr->threadControlBlock->threadID == (int) threadID){
             //match found
-            printf("getThreadNode: node found\n");
+            if(DEBUG){
+                printf("getThreadNode: node found\n");
+            }
             return ptr;
         }
     }
     //not found
-    printf("getThreadNode: why are you here?\n");
+    if(DEBUG){
+        printf("getThreadNode: why are you here?\n");
+    }
     //return;
 }
 /*
@@ -802,7 +897,9 @@ struct threadNode* getThreadNode(int threadID){
 void removeThreadNode(threadNode* findThreadNode){
     //probably need locks/mutex in this function
     ignoreSIGALRM = 1;
-    printf("remove thread node\n");
+    if(DEBUG){
+        printf("remove thread node\n");
+    }
     if(tQueue == NULL || tQueue->head == NULL){
         //shouldn't be null if we're here, but have to check
         printf("removeThreadNode: tQueue or tQueue head is null\n");
@@ -815,7 +912,18 @@ void removeThreadNode(threadNode* findThreadNode){
         if(ptr->threadControlBlock->threadID == findThreadNode->threadControlBlock->threadID)
         {
             //match found, remove/free threadControlBlock and remove from queue
-            if(ptr == tQueue->head){
+            if(getQueueSize(tQueue) == 1){
+                //only head left, remove
+                tQueue->head = NULL;
+                tQueue->tail = NULL;
+                ignoreSIGALRM = 1;
+                free(ptr->threadControlBlock->threadContext.uc_stack.ss_sp);
+                free(ptr->threadControlBlock);
+                free(ptr);
+                return;
+
+            }
+            if(ptr == tQueue->head && getQueueSize(tQueue) > 1){
                 tQueue->head = ptr->next;
                 tQueue->head->prev = NULL;
                 ptr->next = NULL;
@@ -846,14 +954,19 @@ void removeThreadNode(threadNode* findThreadNode){
 
         ptr = ptr->next;
     }
-    printf("no match found\n");
+    if(DEBUG){
+        printf("no match found\n");
+    }
     return;
 }
 /*
     Utility function for counting number of nodes in queue
 */
 int getQueueSize(struct threadQueue* inputQueue){
-    printf("getQueueSize\n");
+    if(DEBUG){
+        printf("getQueueSize\n");
+    }
+    
     if(inputQueue == NULL || inputQueue->head == NULL){
         printf("NOTHING IN QUEUE\n");
         return 0;
