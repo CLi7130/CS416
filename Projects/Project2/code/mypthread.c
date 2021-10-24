@@ -5,7 +5,6 @@
 // iLab Server: rm.cs.rutgers.edu
 
 #include "mypthread.h"
-//#include "queue.h" //modify this?
 
 // INITAILIZE ALL YOUR VARIABLES HERE
 // YOUR CODE HERE
@@ -258,8 +257,11 @@ static void sched_stcf() {
 
 	// YOUR CODE HERE
 
-    cleanup(&threadQ);
-    signal(SIGPROF, SIG_IGN);
+    
+    //ignore alarm during scheduling
+    signal(SIGALRM, SIG_IGN);
+
+    cleanQueue(&threadQ);
     
     tcb* prevTCB = currTCB;
 
@@ -271,6 +273,7 @@ static void sched_stcf() {
 
     enqueue(&threadQ, prevTCB, prevTCB->elapsedQuantums);
 
+    //restart timer/alarm
     initTimer();
 
     swapcontext(&(prevTCB->threadContext), &(currTCB->threadContext));
@@ -571,7 +574,8 @@ void initTimer(){
     memset(&timer, 0, sizeof(timer));
 
     timer.sa_handler = &schedule;
-    //timer calls schedule when it goes off, no need for sighandler
+    //timer calls schedule when it goes off, no need for sighandler or scheduler context
+
     if(sigaction(SIGALRM, &timer, NULL) < 0){//use SIGPROF/ITIMER_PROF?
         //signal handler/sigaction failed?
         perror("SIGACTION failed\n");
@@ -651,8 +655,30 @@ void freeThreadNode(tQueue* deleteNode){
     free(deleteNode->TCB);
     free(deleteNode);
 }
+/*
+    Frees dynamically allocated memory from nodes in queue.
+*/
+void cleanQueue(tQueue** argQueue){
+    /*
+        tQueue* head = *argQueue;
 
-void cleanup(tQueue** queue){
+        if(head == NULL){
+            //null queue,
+            if(DEBUG){
+                printf("NULL QUEUE, NOTHING TO CLEAN\n");
+            }
+            return;
+        }
+
+        for(tQueue* ptr = *argQueue; ptr != NULL; ptr = ptr->next){
+            if(ptr->TCB->threadStatus == REMOVE){
+                if(ptr == head){
+                    *argQueue = ptr->next;
+                    
+                }
+            }
+        }*/
+    
     tQueue* trail = *queue;
     tQueue* lead = trail->next;
     while(lead != NULL){
@@ -674,14 +700,17 @@ void cleanup(tQueue** queue){
         free(trail->TCB);
         free(trail);
     }
+    
 }
-
-int isFinished(mypthread_t waitingThread, tQueue** argQueue){
+/*
+    Checks whether a given thread has finished
+*/
+int isFinished(mypthread_t thread, tQueue** argQueue){
 
     int isFinished = 0;
     for(tQueue* ptr = *argQueue; ptr != NULL; ptr = ptr->next){
         if(ptr->TCB->threadStatus == FINISHED 
-            && ptr->TCB->threadID == waitingThread)
+            && ptr->TCB->threadID == thread)
         {
 
             isFinished = 1;
