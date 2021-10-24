@@ -679,7 +679,7 @@ void cleanQueue(tQueue** argQueue){
             }
         }*/
     
-    tQueue* trail = *queue;
+    tQueue* trail = *argQueue;
     tQueue* lead = trail->next;
     while(lead != NULL){
         if(lead->TCB->threadStatus == REMOVE){
@@ -693,9 +693,9 @@ void cleanQueue(tQueue** argQueue){
         trail = lead;
         lead = lead->next;
     }
-    trail = *queue;
+    trail = *argQueue;
     if(trail->TCB->threadStatus == REMOVE){
-        *queue = trail->next;
+        *argQueue = trail->next;
         free(trail->TCB->threadContext.uc_stack.ss_sp);
         free(trail->TCB);
         free(trail);
