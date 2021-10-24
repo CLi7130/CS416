@@ -4,6 +4,7 @@ AR = ar -rc
 RANLIB = ranlib
 
 SCHED = PSJF
+DEBUG = 0
 
 all: mypthread.a
 
