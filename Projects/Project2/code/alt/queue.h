@@ -5,7 +5,7 @@
 #define _QUEUE_H_ 1
 typedef struct PQueue{
     struct PQueue* next;
-    threadControlBlock* control;
+    threadControlBlock* block;
     int quantum;
 }PQueue;
 void enqueue(PQueue** queue, threadControlBlock* block, int quantum);
