@@ -22,8 +22,11 @@ void *thread(void *arg) {
             break;
         }
     }*/
-    printf("\n~~~~~~~~~~~~~~~~IN THE THREAD FUNCTION~~~~~~~~~~~~~~~~~~~~~\n");
-    printf(" hello from %d\n", (int) arg);
+    while(1){
+        printf("\n~~~~~~~~~~~~~~~~IN THE THREAD FUNCTION~~~~~~~~~~~~~~~~~~~~~\n");
+        printf(" hello from %d\n", (int) arg);
+    }
+
     //spin until interrupt
    //for(int i = 0; i < 5000; i++){ //i, arg);
    // }
@@ -57,9 +60,6 @@ int main(int argc, char **argv) {
         }
     }
     
-    for(int i = 0; i < 50000; i++){
-        printf("%d. ------------Sleeping In the main function;--------\n", i);
-    }
 
     for(int i = 0; i < numThreads; i++){
         printf("~~~~~~~~~~~~~~~~~MAIN: IN PTHREAD_JOIN~~~~~~~~~~~~~~~~~~\n");
