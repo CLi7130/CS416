@@ -1,7 +1,7 @@
 // File:	mypthread_t.h
 
-// List all group member's name: Craig Li  
-// username of iLab: craigli
+// List all group member's name: Craig Li, Prerak Patel
+// username of iLab: craigli, pjp179
 // iLab Server: rm.cs.rutgers.edu
 
 #ifndef MYTHREAD_T_H
@@ -24,8 +24,16 @@
 #include <ucontext.h> //makecontext()
 #include <signal.h> //signal stack/sigaction()
 #include <string.h>
-#include <limits.h> //for intmax, probably should not use this
 #include <stdatomic.h> //for atomic test and set
+
+#define QUANTUM 10000 
+//10 ms for quantum window? -> 10 * 1000 to convert to microseconds
+#define STACKSIZE 32000 
+//32KB for user thread stack = 32000 bytes
+// <100 threads used for grading according to benchmark readme?
+
+//identifier "uint" is undefined - changed to unsigned int?
+typedef unsigned int mypthread_t;
 
 //thread states, add more if necessary
 typedef enum status{
@@ -37,22 +45,6 @@ typedef enum status{
 
     //do we need blocked? piazza says no...
 }status;
-
-#define QUANTUM 10000 
-//10 ms for quantum window? -> 10 * 1000 to convert to microseconds
-#define STACKSIZE 32000 
-//32KB for user thread stack = 32000 bytes
-// <100 threads used for grading according to benchmark readme?
-
-
-#ifdef PJSF
-    #define SCHEDULE FIFO
-#else
-    #define SCHEDULE STCF
-#endif
-
-//identifier "uint" is undefined - changed to unsigned int?
-typedef unsigned int mypthread_t;
 
 //threadControlBlock inserted into threadNode for use in linked list/queue
 typedef struct threadControlBlock {
@@ -73,14 +65,26 @@ typedef struct threadControlBlock {
     int elapsedQuantums; //number of quantums thread has run
     void** value_ptr; //original arg
     void* returnValue; //return values for thread completion/REMOVE
-    
-    //add priority? could base priority off of elapsedQuantums
-    //int priority; //0 for top priority, 1 is next highest, etc
 
     //don't need priority if we're doing a priority queue, base it 
     //off elapsedQuantums as per writeup
 
 } tcb;
+
+typedef struct threadQueue{
+    tcb* TCB;//corresponding threadControlBlock
+    int elapsedQuantums;//number of quantums thread has run
+
+    struct threadQueue* next;
+    struct threadQueue* prev;
+}tQueue;
+
+typedef struct tcbNode{
+    tcb* nTCB;//corresponding threadControlBlock
+
+    struct tcbNode* next;
+    struct tcbNode* prev;
+} tcbNode;
 
 /* mutex struct definition */
 typedef struct mypthread_mutex_t {
@@ -88,19 +92,13 @@ typedef struct mypthread_mutex_t {
 
 	// YOUR CODE HERE
 
-    tcbNode* waitList; 
+    struct tcbNode* waitList; 
     int isLocked; //0 for false/not locked, 1 for true/locked
     //use with __test_and_set()?
 
 } mypthread_mutex_t;
 
-typedef struct tcbNode{
 
-    struct tcbNode* next;
-    struct tcbNode* prev;
-    tcb* qTCB; //corresponding threadControlBlock
-
-} tcbNode;
 
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
@@ -137,15 +135,27 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex);
 int mypthread_mutex_destroy(mypthread_mutex_t *mutex);
 
 static void schedule();
-void freeThreadNode(threadNode* deleteNode);
-void printThreadQueue(struct tcbNode* tempQueue);
-struct threadNode* getThreadNode(int threadID);
-void removeThreadNode(threadNode* findThreadNode);
-int getQueueSize(struct tcbNode* inputQueue);
-void finishThread(int threadID);
+static void sched_stcf();
+
+
+
+//utility functions
 void initTimer();
 void initMain();
-void exitCleanup(void);
+void freeTCBQueue(void);
+int getQueueSize(tQueue** queue);
+void printThreadQueue(tQueue** queue);
+tcb* getTCB(mypthread_t threadID, tQueue** tQueue);
+int isFinished(mypthread_t waitingThread, tQueue** tQueue);
+void notifyThreads(tQueue** tQueue, mypthread_t waitingThread);
+void cleanup(tQueue** tQueue);
+void freeThreadNode(tQueue* deleteNode);
+//void removeThreadNode(threadNode* findThreadNode);
+
+//queue functions
+void enqueue(tQueue** tQueue, tcb* TCB, int elapsedQuantums);
+tcb* dequeue(tQueue** tQueue);
+
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t
