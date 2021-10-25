@@ -1,4 +1,4 @@
-CC = gcc -fsanitize=address
+CC = gcc
 CFLAGS = -g -w
 
 all:: parallel_cal vector_multiply external_cal test
@@ -21,4 +21,3 @@ clean:
 
 pcal:
 	$(CC) $(CFLAGS) -pthread -o pcal pcal.c -L../ -lmypthread
-
