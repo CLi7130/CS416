@@ -63,7 +63,7 @@ typedef struct threadControlBlock {
     ucontext_t threadContext; //context for thread
 
     int elapsedQuantums; //number of quantums thread has run
-    void** value_ptr; //original arg
+    void** valPtr; //original arg
     void* returnValue; //return values for thread completion/REMOVE
 
     //don't need priority if we're doing a priority queue, base it 
@@ -137,10 +137,8 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex);
 static void schedule();
 static void sched_stcf();
 
-
-
 //utility functions
-void initTimer();
+void initTimer(struct sigaction timer, struct itimerval interval);
 void initMain();
 void freeTCBQueue(void);
 int getQueueSize(tQueue** queue);
@@ -148,14 +146,13 @@ void printThreadQueue(tQueue** queue);
 tcb* getTCB(mypthread_t threadID, tQueue** tQueue);
 int isFinished(mypthread_t waitingThread, tQueue** tQueue);
 void notifyThreads(tQueue** tQueue, mypthread_t waitingThread);
-void cleanup(tQueue** tQueue);
 void freeThreadNode(tQueue* deleteNode);
+int removeNode(mypthread_t thread, tQueue** argQueue);
 //void removeThreadNode(threadNode* findThreadNode);
 
 //queue functions
 void enqueue(tQueue** tQueue, tcb* TCB, int elapsedQuantums);
 tcb* dequeue(tQueue** tQueue);
-
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t

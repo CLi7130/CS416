@@ -12,12 +12,17 @@
 tQueue* threadQ = NULL;
 static mypthread_t currThread;
 static tcb* currTCB;
+static struct sigaction timer;
+static struct itimerval interval;
 
 static int newThreadID = 0;
 
 #ifndef DEBUG
     #define DEBUG 0
 #endif
+void freeTCBQueue(void);
+static void schedule();
+static void sched_stcf();
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
@@ -38,11 +43,12 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     if(newThreadID == 0){
         //initialization for first time through
         //set timer and main TCB
-        initTimer();
         initMain();
         newThreadID++;
     }
+    
 
+    currThread = newThreadID;
     //create TCB
     tcb* newTCB = malloc(sizeof(tcb));
 
@@ -52,7 +58,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     newTCB->threadStatus = READY;
     newTCB->elapsedQuantums = 0;
     newTCB->waitingThread = -1;
-    newTCB->value_ptr = NULL;
+    newTCB->valPtr = NULL;
     newTCB->returnValue = NULL;
 
     newThreadID++;
@@ -98,16 +104,23 @@ void mypthread_exit(void *value_ptr) {
 
 	// YOUR CODE HERE
 
-    currTCB->threadStatus == FINISHED;
-    if(currTCB->value_ptr == NULL){
+    currTCB->threadStatus = FINISHED;
+
+    if(currTCB->valPtr == NULL){
+        //value_ptr is not null, have to return value_ptr
         currTCB->returnValue = value_ptr;
     }
     else{
-        //value_ptr is not null, have to return value_ptr
-        *currTCB->value_ptr = value_ptr;
+
+        *currTCB->valPtr = value_ptr;
         currTCB->threadStatus = REMOVE;
-        //freeThreadNode(currTCB);
+        if(removeNode(currTCB->threadID, &threadQ) == -1){
+            perror("Error removing node, aborting\n");
+            abort();
+        }
+        //free(currTCB);
     }
+
     notifyThreads(&threadQ, currTCB->threadID);
     schedule();
 };
@@ -120,15 +133,20 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
 	// de-allocate any dynamic memory created by the joining thread
 
 	// YOUR CODE HERE
-    tcb* tempTCB = NULL;
-
+    
     if(isFinished(thread, &threadQ) == 1){
         //thread done
-        tempTCB = getTCB(thread, &threadQ);
+        tcb* tempTCB = getTCB(thread, &threadQ);
         if(value_ptr != NULL){
 
             tempTCB->threadStatus = REMOVE;
             *value_ptr = tempTCB->returnValue;
+            
+            tcb* ptr = tempTCB;
+            if(removeNode(ptr->threadID, &threadQ) == -1){
+                perror("Error removing node, aborting\n");
+                abort();
+            }
 
         }
         return 0;
@@ -137,10 +155,10 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
     currTCB->threadStatus = WAITING;
     currTCB->waitingThread = thread;
 
-    tempTCB = getTCB(thread, &threadQ);
-    currTCB->value_ptr = value_ptr;
+    tcb* tempTCB = getTCB(thread, &threadQ);
+    tempTCB->valPtr = value_ptr;
     schedule();
-   
+
 };
 
 /* initialize the mutex lock */
@@ -150,8 +168,8 @@ int mypthread_mutex_init(mypthread_mutex_t *mutex,
 
 	// YOUR CODE HERE
 
+    
     if(newThreadID == 0){
-        initTimer();
         initMain();
     }
     mutex->isLocked = 0;
@@ -168,7 +186,7 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex) {
         // context switch to the scheduler thread
 
         // YOUR CODE HERE
-
+        
         while(atomic_flag_test_and_set(&(mutex->isLocked))){
             currTCB->threadStatus = WAITING;
             tcbNode* lockThisNode = malloc(sizeof(tcbNode));
@@ -189,13 +207,12 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex) {
 	// so that they could compete for mutex later.
 
 	// YOUR CODE HERE
-
-    tcbNode* deleteNode = NULL;
-    for(tcbNode* ptr = mutex->waitList; ptr != NULL; ptr = ptr->next){
-
+    
+    tcbNode* ptr = mutex->waitList;
+    while(ptr != NULL){
         ptr->nTCB->threadStatus = READY;
-
-        deleteNode = ptr;
+        tcbNode* deleteNode = ptr;
+        ptr = ptr->next;
         free(deleteNode);
     }
     
@@ -257,11 +274,9 @@ static void sched_stcf() {
 
 	// YOUR CODE HERE
 
-    
+   
     //ignore alarm during scheduling
     signal(SIGALRM, SIG_IGN);
-
-    cleanQueue(&threadQ);
     
     tcb* prevTCB = currTCB;
 
@@ -274,7 +289,7 @@ static void sched_stcf() {
     enqueue(&threadQ, prevTCB, prevTCB->elapsedQuantums);
 
     //restart timer/alarm
-    initTimer();
+    initTimer(timer, interval);
 
     swapcontext(&(prevTCB->threadContext), &(currTCB->threadContext));
 }
@@ -324,9 +339,22 @@ void printThreadQueue(tQueue** queue){
         printf("Node %d.\n", count);
         printf("Thread ID: %d\n",  ptr->TCB->threadID);
         printf("Thread Status: %d\n", (int) ptr->TCB->threadStatus);
+        printf("Waiting Thread: %d\n", ptr->TCB->waitingThread);
         printf("Thread Elapsed Quantums (Runtime): %d\n\n",
                  ptr->TCB->elapsedQuantums);
 
+        printf("Return Value: %p\n", ptr->TCB->returnValue);
+        printf("Value Pointer: %p\n", ptr->TCB->valPtr);
+        /*
+            mypthread_t threadID; //pointer to thread
+            mypthread_t waitingThread;
+            status threadStatus;//ready,waiting,finished etc
+            ucontext_t threadContext; //context for thread
+
+            int elapsedQuantums; //number of quantums thread has run
+            void** valPtr; //original arg
+            void* returnValue; //return values for thread completion/REMOVE
+        */
         count++;
     }
     printf("-------------LIST DONE------------\n");
@@ -336,7 +364,7 @@ void printThreadQueue(tQueue** queue){
     parameter node, and returns a pointer to that node's control block. Returns NULL if not found.
 */
 tcb* getTCB(mypthread_t threadID, tQueue** threadQ){
-
+   
     tcb* tempTCB = NULL;
     for(tQueue* ptr = *threadQ; ptr != NULL; ptr = ptr->next){
 
@@ -353,6 +381,7 @@ tcb* getTCB(mypthread_t threadID, tQueue** threadQ){
     of elapsedQuantums is higher priority.
 */
 void enqueue(tQueue** argQueue, tcb* argTCB, int argQuantums){
+    
     if(argQueue == NULL){
         if(DEBUG){
             printf("EMPTY OR NULL QUEUE\n");
@@ -365,7 +394,7 @@ void enqueue(tQueue** argQueue, tcb* argTCB, int argQuantums){
     }
 
     //node to insert
-    tQueue* newNode = malloc(sizeof(tQueue));
+    tQueue *newNode = malloc(sizeof(tQueue));
 
     newNode->elapsedQuantums = argQuantums;
     newNode->TCB = argTCB;
@@ -373,60 +402,46 @@ void enqueue(tQueue** argQueue, tcb* argTCB, int argQuantums){
     newNode->prev = NULL;
 
     //reference to head
-    tQueue* head = *argQueue;
+    tQueue *head = *argQueue;
     
     if(head == NULL){
         *argQueue = newNode;
         return;
     }
-    //iterate until we find the correct place to insert into queue
-    for(tQueue* ptr = head; ptr != NULL; ptr = ptr->next){
-        if(ptr->elapsedQuantums > argQuantums){
-            if(ptr == head){
-                //newNode is new head of queue
-                newNode->next = head;
-                head->prev = newNode;
-                newNode->prev = NULL;
-                *argQueue = newNode;
-
-                break;
-            }
-            else if(ptr->next != NULL){
-                //newNode is in middle of queue
-                newNode->prev = ptr->prev;
-                newNode->next = ptr;
-                ptr->prev->next = newNode;
-                ptr->prev = newNode;
-
-                break;
-            }
-            else{
-                //at end of queue, insert newNode as tail
-                ptr->next = newNode;
-                newNode->prev = ptr;
-                newNode->next = NULL;
-                *argQueue = head;
-
-                break;
-            }
-        }
+    else if(head->elapsedQuantums > argQuantums){
+        newNode->next = head;
+        head->prev = newNode;
+        *argQueue = newNode;
+        return;
     }
+    tQueue* ptr = head->next;
+    tQueue* ptr2 = head;
+    
+    while(ptr != NULL && ptr->elapsedQuantums < argQuantums){
+        ptr2 = ptr;
+        ptr = ptr->next;
+    }
+    newNode->next = ptr;
+    if(ptr != NULL){
+        ptr->prev = newNode;
+    }
+    ptr2->next = newNode;
+    newNode->prev = ptr2;
 
     if(DEBUG){
         printf("ENQUEUING NODE: post add\n");
         printThreadQueue(argQueue);
     }
-
 }
 /*
     Dequeues the first READY Node from the queue, used in sched_stcf to set currTCB
 */
 tcb* dequeue(tQueue** argQueue){
-
+   
     //reference to head
-    tQueue* head = *argQueue;
+    tQueue* temp = *argQueue;
 
-    if(head == NULL){
+    if(temp == NULL){
         if(DEBUG){
             printf("QUEUE IS EMPTY\n");
         }
@@ -438,116 +453,50 @@ tcb* dequeue(tQueue** argQueue){
     }
     //returned TCB
     tcb* priorityTCB = NULL;
-    //iterate until we find the correct node to dequeue
-    for(tQueue* ptr = head; ptr != NULL; ptr = ptr->next){
+
+    for(tQueue *ptr = *argQueue; ptr != NULL; ptr = ptr->next){
         if(ptr->TCB->threadStatus == READY){
-            if(ptr == head){
-                //node is at head of queue
-                *argQueue = head->next;
-                priorityTCB = head->TCB;
-                free(head);
-                
+            if(ptr == temp){
+                //head of queue
+                *argQueue = ptr->next;
+                //ptr->next->prev = NULL;
+                ptr->next = NULL;
+                priorityTCB = ptr->TCB;
+                free(ptr);
                 break;
             }
             else if(ptr->next != NULL){
-                //node in middle of queue
-                ptr->next->prev = ptr->prev;
+                //middle of queue
+                priorityTCB = ptr->TCB;
                 ptr->prev->next = ptr->next;
-
+                ptr->next->prev = ptr->prev;
                 ptr->next = NULL;
                 ptr->prev = NULL;
                 free(ptr);
-
-                priorityTCB = ptr->TCB;
                 break;
             }
             else{
-                //at end of queue
+                //tail/end of queue
+                priorityTCB = ptr->TCB;
                 ptr->prev->next = NULL;
                 ptr->prev = NULL;
-                priorityTCB = ptr->TCB;
                 free(ptr);
                 break;
+
             }
         }
     }
+
     if(DEBUG){
         printf("DEQUEUEING NODE: post DQ\n");
         printThreadQueue(argQueue);
     }
     return priorityTCB;
 }
-/*
-void removeThreadNode(threadNode* findThreadNode){
-    //probably need locks/mutex in this function
-    ignoreSIGALRM = 1;
-    if(DEBUG){
-        printf("remove thread node\n");
-    }
-    if(tQueue == NULL || tQueue->head == NULL){
-        //shouldn't be null if we're here, but have to check
-        printf("removeThreadNode: tQueue or tQueue head is null\n");
-        return;
-    }
 
-    threadNode* ptr = tQueue->head;
-    while(ptr != NULL){
-
-        if(ptr->threadControlBlock->threadID == findThreadNode->threadControlBlock->threadID)
-        {
-            //match found, remove/free threadControlBlock and remove from queue
-            if(getQueueSize(tQueue) == 1){
-                //only head left, remove
-                tQueue->head = NULL;
-                tQueue->tail = NULL;
-                ignoreSIGALRM = 1;
-                free(ptr->threadControlBlock->threadContext.uc_stack.ss_sp);
-                free(ptr->threadControlBlock);
-                free(ptr);
-                return;
-
-            }
-            if(ptr == tQueue->head && getQueueSize(tQueue) > 1){
-                tQueue->head = ptr->next;
-                tQueue->head->prev = NULL;
-                ptr->next = NULL;
-
-                freeThreadNode(ptr);
-                return;
-            }
-            else if(ptr == tQueue->tail){
-                tQueue->tail->prev->next = NULL;
-                tQueue->tail = tQueue->tail->prev;
-                ptr->prev = NULL;
-
-                freeThreadNode(ptr);
-                return;
-            }
-            else{
-                //somewhere in the middle of the queue
-                ptr->prev->next = ptr->next;
-                ptr->next->prev = ptr->prev;
-
-                ptr->next = NULL;
-                ptr->prev = NULL;
-
-                freeThreadNode(ptr);
-                return;
-            }
-        }
-
-        ptr = ptr->next;
-    }
-    if(DEBUG){
-        printf("no match found\n");
-    }
-    return;
-}
-*/
 /*
     Utility function for counting number of nodes in queue
 */
-
 int getQueueSize(tQueue** queue){
     
     int count = 0;
@@ -567,9 +516,7 @@ int getQueueSize(tQueue** queue){
 /*
     Create timer
 */
-void initTimer(){
-    struct sigaction timer;
-    struct itimerval interval;
+void initTimer(struct sigaction timer, struct itimerval interval){
 
     memset(&timer, 0, sizeof(timer));
 
@@ -597,31 +544,41 @@ void initTimer(){
     Initialize main TCB
 */
 void initMain(){
-    atexit(freeTCBQueue);
-
+    
+    
+    //signal(SIGALRM, SIG_IGN);
+    currThread = newThreadID;
     tcb* mainTCB = malloc(sizeof(tcb));
 
-    currThread = newThreadID;
     mainTCB->threadID = currThread;
     mainTCB->waitingThread = -1;
 
     mainTCB->threadStatus = READY;
     mainTCB->elapsedQuantums = 0;
 
-    mainTCB->value_ptr = NULL;
+    mainTCB->valPtr = NULL;
     mainTCB->returnValue = NULL;
 
     currTCB = mainTCB;
-    getcontext(&(currTCB->threadContext));
-
+    initTimer(timer, interval);
+    newThreadID++;
+    atexit(freeTCBQueue);
     //currTCB->threadContext.uc_link = &freeTCBQueue;
+    getcontext(&(currTCB->threadContext));
+    
+    
+    //tcb* mainReturn = malloc(sizeof(tcb));
+    //getcontext(&(mainReturn->threadContext));
+    //makecontext(&(mainReturn->threadContext), freeTCBQueue, 0);
+
+    //currTCB->threadContext.uc_link = &(mainReturn->threadContext);
 
 }
 /*
     Updates all threads that were waiting on a thread to exit, changes status from WAITING to READY.
 */
 void notifyThreads(tQueue** queue, mypthread_t waiting){
-
+    
     for(tQueue* ptr = *queue; ptr != NULL; ptr = ptr->next){
 
         if(ptr->TCB->threadStatus == WAITING 
@@ -637,12 +594,13 @@ void notifyThreads(tQueue** queue, mypthread_t waiting){
     Iterates through queue and frees all malloc'd memory from nodes
 */
 void freeTCBQueue(void){
+    
+    tQueue* ptr = threadQ;
 
-    for(tQueue* ptr = threadQ; ptr != NULL; ptr = ptr->next){
-
-        tQueue* temp = ptr->next;
-        freeThreadNode(ptr);
-        ptr = temp;
+    while(ptr != NULL){
+        tQueue* temp = ptr;
+        ptr = ptr->next;
+        freeThreadNode(temp);
     }
     free(currTCB);
 }
@@ -651,56 +609,10 @@ void freeTCBQueue(void){
     Helper function that frees all malloc'd memory of a threadNode. Used to cut down redundancy in code.
 */
 void freeThreadNode(tQueue* deleteNode){
+
     free(deleteNode->TCB->threadContext.uc_stack.ss_sp);
     free(deleteNode->TCB);
     free(deleteNode);
-}
-/*
-    Frees dynamically allocated memory from nodes in queue.
-*/
-void cleanQueue(tQueue** argQueue){
-    /*
-        tQueue* head = *argQueue;
-
-        if(head == NULL){
-            //null queue,
-            if(DEBUG){
-                printf("NULL QUEUE, NOTHING TO CLEAN\n");
-            }
-            return;
-        }
-
-        for(tQueue* ptr = *argQueue; ptr != NULL; ptr = ptr->next){
-            if(ptr->TCB->threadStatus == REMOVE){
-                if(ptr == head){
-                    *argQueue = ptr->next;
-                    
-                }
-            }
-        }*/
-    
-    tQueue* trail = *argQueue;
-    tQueue* lead = trail->next;
-    while(lead != NULL){
-        if(lead->TCB->threadStatus == REMOVE){
-            trail->next = lead->next;
-            free(lead->TCB->threadContext.uc_stack.ss_sp);
-            free(lead->TCB);
-            free(lead);
-            lead = trail->next;
-            continue;
-        }
-        trail = lead;
-        lead = lead->next;
-    }
-    trail = *argQueue;
-    if(trail->TCB->threadStatus == REMOVE){
-        *argQueue = trail->next;
-        free(trail->TCB->threadContext.uc_stack.ss_sp);
-        free(trail->TCB);
-        free(trail);
-    }
-    
 }
 /*
     Checks whether a given thread has finished
@@ -719,4 +631,34 @@ int isFinished(mypthread_t thread, tQueue** argQueue){
     }
 
     return isFinished;
+}
+
+/*
+    Deallocates memory from a node in the queue
+*/
+int removeNode(mypthread_t thread, tQueue** argQueue){
+
+    int removed = -1;
+    for(tQueue* ptr = *argQueue; ptr != NULL; ptr = ptr->next){
+        if(ptr->TCB->threadStatus == REMOVE 
+            && ptr->TCB->threadID == thread)
+        {
+            tQueue* node = ptr;
+            
+            if(node->next != NULL){
+                node->next->prev = node->prev;
+            }
+            if(node->prev != NULL){
+                node->prev->next = node->next;
+            }
+            node->next = NULL;
+            node->prev = NULL;
+            freeThreadNode(node);
+
+            removed = 1;
+            break;
+        }
+    }
+
+    return removed;
 }
