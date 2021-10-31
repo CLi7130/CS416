@@ -8,7 +8,7 @@
 #define local_threshold 1000
 
 #ifndef NUM_THREADS
-    #define NUM_THREADS 2
+    #define NUM_THREADS 1
 #endif
 
 int counter = 0;
@@ -23,6 +23,11 @@ typedef struct __counter_t {
     int threshold;
 
 } counter_t;
+
+typedef struct threadArg {
+    counter_t *counterStruct;
+    int threadID;
+}tArg;
 
 /**
  * record threshold, init locks, init values of all local counts and global
@@ -58,15 +63,40 @@ void update(counter_t *c, int threadID, int amount){
     }
 }
 
+/**
+ * Returns global amount (approximate)
+ *  
+ * val is only the approximate value of the global
+ * counter, since the implementation of an 
+ * approximate counter is to update in chunks based 
+ * off of the threshold, so it may not reflect the
+ * "true" value of the global counter
+ */
+int get(counter_t *c){
+    pthread_mutex_lock(&c->global_lock);
+    int val = c->global;
+    pthread_mutex_unlock(&c->global_lock);
+    return val;
+}
 
-void *countFunct(){
 
+void *countFunct(void *args){
+
+    struct tArgs *arguments = args;
+
+    for(int i = 0; i < COUNTER_VALUE; i++){
+        update(&arguments->counterStruct, &arguments->threadID, 1);
+        
+    }
+
+    /*
     pthread_mutex_lock(&global_lock);
 	for(int i=0; i < COUNTER_VALUE; i+=INCREMENTBY){
 		counter += INCREMENTBY;
 	}
 	pthread_mutex_unlock(&global_lock);
 	pthread_exit(0);
+    */
 }
 
 
@@ -82,7 +112,10 @@ int main(int argc, char** argv) {
 			exit(EXIT_FAILURE);
 		}
 	}	
-	
+    //change macro definition to input
+	#undef NUM_THREADS
+    #define NUM_THREADS Threads
+
 	pthread_t *tids;
 	tids = malloc(Threads * sizeof(pthread_t));
 
@@ -95,8 +128,16 @@ int main(int argc, char** argv) {
 	int timeStartS = tv.tv_sec;
 
 	pthread_mutex_init(&global_lock, NULL);
+    counter_t *counterStruct;
+    init(counterStruct, 1024);
+
 	for (int i = 0; i < Threads; i++){
-		err = pthread_create(&tids[i], NULL, countFunct, NULL);
+
+        tArg *threadArg;
+        threadArg->counterStruct = counterStruct;
+        threadArg->threadID = i;
+
+		err = pthread_create(&tids[i], NULL, countFunct, threadArg);
 		if(err != 0){
 			perror("pthread_create");
 		}
