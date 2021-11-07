@@ -17,7 +17,6 @@ void *countFunct(){
 		global_counter++;
 	}
 
-	//pthread_exit(0);
 }
 
 

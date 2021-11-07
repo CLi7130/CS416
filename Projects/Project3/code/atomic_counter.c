@@ -18,7 +18,7 @@ void *countFunct(){
 	for(int i=0; i < COUNTER_VALUE; i++){
 		atomic_fetch_add(&global_counter, 1);
 	}
-	//pthread_exit(0);
+    
 }
 
 
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 
 	printf("Counter finish in %f ms\n"
             "The value of counter should be %ld\n"
-            "The value of counter is %ld\n",
+            "The value of counter is %ld\n", 
             timeDiffMS, correctCounter, global_counter);
 	
 	return 0;

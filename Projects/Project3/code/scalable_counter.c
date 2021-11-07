@@ -15,8 +15,8 @@ pthread_mutex_t local_lock;
  * Implementation of an approximate/scalable counter, uses local counters to 
  * cut down on concurrency overhead (global counter is accessed less overall).
  * Local Counter is incremented until a threshold is hit, at which point it
- * pushes its value into the global counter.  Thread safe, we are trading
- * accuracy for time performance (final result may not be correct)
+ * pushes its value into the global counter.  This is Thread safe, but we are 
+ * trading accuracy for time performance (final result may not be correct)
  */
 void *countFunct(){
     int local_counter = 0;
@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 
 	printf("Counter finish in %f ms\n"
             "The value of counter should be %ld\n"
-            "The value of counter is %ld\n",
+            "The value of counter is %ld\n", 
             timeDiffMS, correctCounter, global_counter);
 	
 	return 0;
