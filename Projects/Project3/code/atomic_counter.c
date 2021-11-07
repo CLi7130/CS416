@@ -6,7 +6,7 @@
 
 #define COUNTER_VALUE (1UL << 24)
 
-atomic_int_fast64_t acounter;
+atomic_int_fast64_t global_counter = 0;
 pthread_mutex_t global_lock;
 
 /**
@@ -16,9 +16,9 @@ pthread_mutex_t global_lock;
 void *countFunct(){
 
 	for(int i=0; i < COUNTER_VALUE; i++){
-		atomic_fetch_add(&acounter, 1);
+		atomic_fetch_add(&global_counter, 1);
 	}
-	pthread_exit(0);
+	//pthread_exit(0);
 }
 
 
@@ -29,13 +29,13 @@ int main(int argc, char** argv) {
 		exit(EXIT_FAILURE);
 	}
 	else{
-		if ((Threads = atoi(argv[1])) == 0){
+		if((Threads = atoi(argv[1])) == 0){
 			perror("Need an integer");
 			exit(EXIT_FAILURE);
 		}
 	}	
     //initialize atomic counter to 0
-	atomic_init(&acounter, 0);
+	//atomic_init(&global_counter, 0);
 
 	pthread_t *tids;
 	tids = malloc(Threads * sizeof(pthread_t));
@@ -68,13 +68,13 @@ int main(int argc, char** argv) {
 	int timeDiffM = timeEndM - timeStartM;
 	timeDiffM = timeDiffM + (timeDiffS * 1000000);
 	double timeDiffMS = (double) timeDiffM/1000;
-	int correctCounter = Threads * COUNTER_VALUE;
+	unsigned long correctCounter = Threads * COUNTER_VALUE;
 	free(tids);
 
 	printf("Counter finish in %f ms\n"
-            "The value of counter should be %d\n"
+            "The value of counter should be %ld\n"
             "The value of counter is %ld\n",
-            timeDiffMS, correctCounter, acounter);
+            timeDiffMS, correctCounter, global_counter);
 	
 	return 0;
 }

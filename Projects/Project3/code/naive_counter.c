@@ -5,8 +5,7 @@
 
 #define COUNTER_VALUE (1UL << 24)
 
-
-int counter = 0;
+unsigned long global_counter = 0;
 
 
 /**
@@ -15,10 +14,10 @@ int counter = 0;
 void *countFunct(){
 
 	for(int i=0; i < COUNTER_VALUE; i++){
-		counter++;
+		global_counter++;
 	}
 
-	pthread_exit(0);
+	//pthread_exit(0);
 }
 
 
@@ -34,8 +33,6 @@ int main(int argc, char** argv) {
 			exit(EXIT_FAILURE);
 		}
 	}	
-	
-
 
 	pthread_t *tids;
 	tids = malloc(Threads * sizeof(pthread_t));
@@ -67,13 +64,13 @@ int main(int argc, char** argv) {
 	int timeDiffM = timeEndM - timeStartM;
 	timeDiffM = timeDiffM + (timeDiffS * 1000000);
 	double timeDiffMS = (double) timeDiffM/1000;
-	int correctCounter = Threads * COUNTER_VALUE;
+	unsigned long correctCounter = Threads * COUNTER_VALUE;
 	free(tids);
 
 	printf("Counter finish in %f ms\n"
-            "The value of counter should be %d\n"
-            "The value of counter is %d\n", 
-            timeDiffMS, correctCounter, counter);
+            "The value of counter should be %ld\n"
+            "The value of counter is %ld\n", 
+            timeDiffMS, correctCounter, global_counter);
 	
 	return 0;
 }
