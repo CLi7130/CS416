@@ -10,6 +10,9 @@
 # this can probably be implemented more efficiently, but I have no idea 
 # how bash scripting works
 
+# test counter programs with the following numbers of threads
+testSuite=(1 2 4 8 16 32 64 128)
+
 clear
 echo "-------------------------------------------------------------"
 echo "----------------TEST SUITE FOR COUNTER PROGRAMS--------------"
@@ -23,9 +26,6 @@ echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 make clean
 make
-
-# test counter programs with the following numbers of threads
-testSuite=(1 4 5 10 25 50 100)
 
 echo
 echo "-----------------------NAIVE COUNTER---------------------------"
