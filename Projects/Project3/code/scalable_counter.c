@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <stdatomic.h>
 
 #define COUNTER_VALUE (1UL << 24)
 #define LOCAL_THRESHOLD 1024
 
-unsigned long global_counter = 0;
+atomic_int_fast64_t global_counter = 0;
 pthread_mutex_t global_lock;
-pthread_mutex_t local_lock;
-
 
 /**
  * Implementation of an approximate/scalable counter, uses local counters to 
@@ -28,9 +27,7 @@ void *countFunct(){
         //dump value of local counter into global once we hit
         //local threshold
         if(local_counter >= LOCAL_THRESHOLD){
-            pthread_mutex_lock(&global_lock);
-            global_counter = global_counter + local_counter;
-            pthread_mutex_unlock(&global_lock);
+            atomic_fetch_add(&global_counter, local_counter);
 
             //reset local_counter to 0 once we've hit threshold
             local_counter = 0;
