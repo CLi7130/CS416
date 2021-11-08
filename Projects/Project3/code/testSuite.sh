@@ -12,7 +12,9 @@
 # tip: can use ": '" and "'" to open and close multiline bash comments
 
 # test counter programs with the following numbers of threads
-testSuite=(1 2 4 8 16 32 64 128 500 1000 5000)
+testSuite=(1 2 4 8 16 32 64 128)
+# tests represents the number of times you are to run each test
+tests=10
 
 clear
 echo "-------------------------------------------------------------"
@@ -33,27 +35,42 @@ echo "-----------------------NAIVE COUNTER---------------------------"
 echo
 
 for i in ${testSuite[@]}; do
-    echo "./naive_counter" ${i}
-    ./naive_counter $i
-    echo
+echo "------------Test: NC" $i "-----------"
+echo
+    for (( j=1;j<=tests;j++)) do
+        echo "Test:" $j
+        echo "./naive_counter" ${i}
+        ./naive_counter $i
+        echo
+    done
 done
 
 echo "-----------------------NAIVE COUNTER PLUS---------------------"
 echo
 
 for i in ${testSuite[@]}; do
-    echo "./naive_counter_plus" ${i}
-    ./naive_counter_plus $i
-    echo
+echo "------------Test: NC+" $i "-----------"
+echo
+    for (( j=1;j<=tests;j++)) do
+        echo "Test:" $j
+        echo "./naive_counter_plus" ${i}
+        ./naive_counter_plus $i
+        echo
+    done
 done
 
 echo "-----------------------ATOMIC COUNTER---------------------"
 echo
 
 for i in ${testSuite[@]}; do
-    echo "./atomic_counter" ${i}
-    ./atomic_counter $i
-    echo
+echo "------------Test: AC" $i "-----------"
+echo
+    for (( j=1;j<=tests;j++)) do
+        echo "Test:" $j
+        echo "./atomic_counter" ${i}
+        ./atomic_counter $i
+        echo
+    done
 done
 
 
@@ -61,8 +78,13 @@ echo "-----------------------SCALABLE COUNTER---------------------"
 echo
 
 for i in ${testSuite[@]}; do
-    echo "./scalable_counter" ${i}
-    ./scalable_counter $i
-    echo
+echo "------------Test: SC" $i "-----------"
+echo
+    for (( j=1;j<=tests;j++)) do
+        echo "Test:" $j
+        echo "./scalable_counter" ${i}
+        ./scalable_counter $i
+        echo
+    done
 done
 
