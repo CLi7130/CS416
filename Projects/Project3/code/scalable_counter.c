@@ -34,6 +34,11 @@ void *countFunct(){
         }
         
     }
+    //add any remaining leftovers in local_counter, this removes error 
+    //from approximate counter
+    if(local_counter > 0){
+        atomic_fetch_add(&global_counter, local_counter);
+    }
 
 }
 
