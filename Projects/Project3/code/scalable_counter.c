@@ -15,7 +15,7 @@ pthread_mutex_t global_lock;
  * cut down on concurrency overhead (global counter is accessed less overall).
  * Local Counter is incremented until a threshold is hit, at which point it
  * pushes its value into the global counter.  This is Thread safe, but we are 
- * trading accuracy for time performance (final result may not be correct)
+ * trading accuracy for time performance.
  */
 void *countFunct(){
     int local_counter = 0;
