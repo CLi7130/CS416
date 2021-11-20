@@ -2,8 +2,8 @@
 
 # test suite for counter files, tests each program with
 # certain numbers of threads, it assumes you are in the
-# Projects/Project3/code directory
-# can be run by using the following command:
+# Project3/code directory
+# can be run by using the following command (no arguments):
 #
 # ./testSuite.sh
 
@@ -14,7 +14,7 @@
 # test counter programs with the following numbers of threads
 testSuite=(1 2 4 8 16 32 64 128)
 # tests represents the number of times you are to run each test
-tests=10
+tests=5
 
 clear
 echo "-------------------------------------------------------------"

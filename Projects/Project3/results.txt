@@ -1,0 +1,2006 @@
+[H[2J[3J-------------------------------------------------------------
+----------------TEST SUITE FOR COUNTER PROGRAMS--------------
+-------------------------------------------------------------
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+RUNNING PROGRAMS WITH LARGER AMOUNTS OF THREADS MAY RESULT IN LONGER RUNTIMES
+
+RUNTIMES ARE ILAB SERVER DEPENDENT, AND WILL DIFFER ON EACH RUN
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+rm naive_counter naive_counter_plus atomic_counter scalable_counter
+gcc -o naive_counter naive_counter.c -lpthread	
+gcc -o naive_counter_plus naive_counter_plus.c -lpthread	
+gcc -o atomic_counter atomic_counter.c -lpthread	
+gcc -o scalable_counter scalable_counter.c -lpthread		
+
+-----------------------NAIVE COUNTER---------------------------
+
+------------Test: NC 1 -----------
+
+Test: 1
+./naive_counter 1
+Counter finish in 67.618000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 2
+./naive_counter 1
+Counter finish in 42.529000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 3
+./naive_counter 1
+Counter finish in 44.227000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 4
+./naive_counter 1
+Counter finish in 43.660000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 5
+./naive_counter 1
+Counter finish in 43.313000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 6
+./naive_counter 1
+Counter finish in 44.115000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 7
+./naive_counter 1
+Counter finish in 43.362000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 8
+./naive_counter 1
+Counter finish in 45.616000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 9
+./naive_counter 1
+Counter finish in 45.068000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 10
+./naive_counter 1
+Counter finish in 44.070000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+------------Test: NC 2 -----------
+
+Test: 1
+./naive_counter 2
+Counter finish in 113.393000 ms
+The value of counter should be 33554432
+The value of counter is 19092998
+
+Test: 2
+./naive_counter 2
+Counter finish in 115.948000 ms
+The value of counter should be 33554432
+The value of counter is 18777541
+
+Test: 3
+./naive_counter 2
+Counter finish in 101.714000 ms
+The value of counter should be 33554432
+The value of counter is 17111128
+
+Test: 4
+./naive_counter 2
+Counter finish in 112.450000 ms
+The value of counter should be 33554432
+The value of counter is 18338576
+
+Test: 5
+./naive_counter 2
+Counter finish in 105.421000 ms
+The value of counter should be 33554432
+The value of counter is 17443308
+
+Test: 6
+./naive_counter 2
+Counter finish in 79.801000 ms
+The value of counter should be 33554432
+The value of counter is 19462045
+
+Test: 7
+./naive_counter 2
+Counter finish in 80.898000 ms
+The value of counter should be 33554432
+The value of counter is 19004379
+
+Test: 8
+./naive_counter 2
+Counter finish in 102.848000 ms
+The value of counter should be 33554432
+The value of counter is 17581068
+
+Test: 9
+./naive_counter 2
+Counter finish in 84.099000 ms
+The value of counter should be 33554432
+The value of counter is 18689726
+
+Test: 10
+./naive_counter 2
+Counter finish in 101.675000 ms
+The value of counter should be 33554432
+The value of counter is 17133197
+
+------------Test: NC 4 -----------
+
+Test: 1
+./naive_counter 4
+Counter finish in 214.032000 ms
+The value of counter should be 67108864
+The value of counter is 19670700
+
+Test: 2
+./naive_counter 4
+Counter finish in 288.835000 ms
+The value of counter should be 67108864
+The value of counter is 18140697
+
+Test: 3
+./naive_counter 4
+Counter finish in 227.671000 ms
+The value of counter should be 67108864
+The value of counter is 20143575
+
+Test: 4
+./naive_counter 4
+Counter finish in 237.378000 ms
+The value of counter should be 67108864
+The value of counter is 22381394
+
+Test: 5
+./naive_counter 4
+Counter finish in 258.117000 ms
+The value of counter should be 67108864
+The value of counter is 18434828
+
+Test: 6
+./naive_counter 4
+Counter finish in 203.887000 ms
+The value of counter should be 67108864
+The value of counter is 23898144
+
+Test: 7
+./naive_counter 4
+Counter finish in 263.332000 ms
+The value of counter should be 67108864
+The value of counter is 20229076
+
+Test: 8
+./naive_counter 4
+Counter finish in 223.438000 ms
+The value of counter should be 67108864
+The value of counter is 19021764
+
+Test: 9
+./naive_counter 4
+Counter finish in 215.118000 ms
+The value of counter should be 67108864
+The value of counter is 20980370
+
+Test: 10
+./naive_counter 4
+Counter finish in 203.799000 ms
+The value of counter should be 67108864
+The value of counter is 19899301
+
+------------Test: NC 8 -----------
+
+Test: 1
+./naive_counter 8
+Counter finish in 445.602000 ms
+The value of counter should be 134217728
+The value of counter is 18799115
+
+Test: 2
+./naive_counter 8
+Counter finish in 430.996000 ms
+The value of counter should be 134217728
+The value of counter is 18208337
+
+Test: 3
+./naive_counter 8
+Counter finish in 461.181000 ms
+The value of counter should be 134217728
+The value of counter is 20061998
+
+Test: 4
+./naive_counter 8
+Counter finish in 394.364000 ms
+The value of counter should be 134217728
+The value of counter is 18974508
+
+Test: 5
+./naive_counter 8
+Counter finish in 500.751000 ms
+The value of counter should be 134217728
+The value of counter is 22062189
+
+Test: 6
+./naive_counter 8
+Counter finish in 432.961000 ms
+The value of counter should be 134217728
+The value of counter is 22464380
+
+Test: 7
+./naive_counter 8
+Counter finish in 396.218000 ms
+The value of counter should be 134217728
+The value of counter is 22267188
+
+Test: 8
+./naive_counter 8
+Counter finish in 394.436000 ms
+The value of counter should be 134217728
+The value of counter is 23962835
+
+Test: 9
+./naive_counter 8
+Counter finish in 402.753000 ms
+The value of counter should be 134217728
+The value of counter is 20698245
+
+Test: 10
+./naive_counter 8
+Counter finish in 416.450000 ms
+The value of counter should be 134217728
+The value of counter is 23031871
+
+------------Test: NC 16 -----------
+
+Test: 1
+./naive_counter 16
+Counter finish in 888.187000 ms
+The value of counter should be 268435456
+The value of counter is 26391597
+
+Test: 2
+./naive_counter 16
+Counter finish in 805.262000 ms
+The value of counter should be 268435456
+The value of counter is 27444160
+
+Test: 3
+./naive_counter 16
+Counter finish in 788.723000 ms
+The value of counter should be 268435456
+The value of counter is 29070999
+
+Test: 4
+./naive_counter 16
+Counter finish in 897.987000 ms
+The value of counter should be 268435456
+The value of counter is 31974708
+
+Test: 5
+./naive_counter 16
+Counter finish in 797.820000 ms
+The value of counter should be 268435456
+The value of counter is 26548794
+
+Test: 6
+./naive_counter 16
+Counter finish in 959.679000 ms
+The value of counter should be 268435456
+The value of counter is 32804526
+
+Test: 7
+./naive_counter 16
+Counter finish in 796.432000 ms
+The value of counter should be 268435456
+The value of counter is 26320924
+
+Test: 8
+./naive_counter 16
+Counter finish in 925.533000 ms
+The value of counter should be 268435456
+The value of counter is 31427709
+
+Test: 9
+./naive_counter 16
+Counter finish in 906.108000 ms
+The value of counter should be 268435456
+The value of counter is 30589655
+
+Test: 10
+./naive_counter 16
+Counter finish in 791.238000 ms
+The value of counter should be 268435456
+The value of counter is 28203714
+
+------------Test: NC 32 -----------
+
+Test: 1
+./naive_counter 32
+Counter finish in 1612.804000 ms
+The value of counter should be 536870912
+The value of counter is 32798846
+
+Test: 2
+./naive_counter 32
+Counter finish in 1770.882000 ms
+The value of counter should be 536870912
+The value of counter is 30784281
+
+Test: 3
+./naive_counter 32
+Counter finish in 1578.732000 ms
+The value of counter should be 536870912
+The value of counter is 44452584
+
+Test: 4
+./naive_counter 32
+Counter finish in 1598.784000 ms
+The value of counter should be 536870912
+The value of counter is 48058871
+
+Test: 5
+./naive_counter 32
+Counter finish in 1577.757000 ms
+The value of counter should be 536870912
+The value of counter is 30718708
+
+Test: 6
+./naive_counter 32
+Counter finish in 1805.592000 ms
+The value of counter should be 536870912
+The value of counter is 41400751
+
+Test: 7
+./naive_counter 32
+Counter finish in 1639.502000 ms
+The value of counter should be 536870912
+The value of counter is 34214690
+
+Test: 8
+./naive_counter 32
+Counter finish in 1595.266000 ms
+The value of counter should be 536870912
+The value of counter is 39774134
+
+Test: 9
+./naive_counter 32
+Counter finish in 1576.386000 ms
+The value of counter should be 536870912
+The value of counter is 30443960
+
+Test: 10
+./naive_counter 32
+Counter finish in 1629.039000 ms
+The value of counter should be 536870912
+The value of counter is 38123382
+
+------------Test: NC 64 -----------
+
+Test: 1
+./naive_counter 64
+Counter finish in 3162.487000 ms
+The value of counter should be 1073741824
+The value of counter is 51849738
+
+Test: 2
+./naive_counter 64
+Counter finish in 3615.768000 ms
+The value of counter should be 1073741824
+The value of counter is 50233022
+
+Test: 3
+./naive_counter 64
+Counter finish in 3059.843000 ms
+The value of counter should be 1073741824
+The value of counter is 32418365
+
+Test: 4
+./naive_counter 64
+Counter finish in 3586.324000 ms
+The value of counter should be 1073741824
+The value of counter is 42209252
+
+Test: 5
+./naive_counter 64
+Counter finish in 3558.844000 ms
+The value of counter should be 1073741824
+The value of counter is 40008323
+
+Test: 6
+./naive_counter 64
+Counter finish in 3114.455000 ms
+The value of counter should be 1073741824
+The value of counter is 31965544
+
+Test: 7
+./naive_counter 64
+Counter finish in 3537.072000 ms
+The value of counter should be 1073741824
+The value of counter is 40162643
+
+Test: 8
+./naive_counter 64
+Counter finish in 3573.265000 ms
+The value of counter should be 1073741824
+The value of counter is 35024972
+
+Test: 9
+./naive_counter 64
+Counter finish in 3599.934000 ms
+The value of counter should be 1073741824
+The value of counter is 35304959
+
+Test: 10
+./naive_counter 64
+Counter finish in 3588.899000 ms
+The value of counter should be 1073741824
+The value of counter is 35895718
+
+------------Test: NC 128 -----------
+
+Test: 1
+./naive_counter 128
+Counter finish in 6416.408000 ms
+The value of counter should be 2147483648
+The value of counter is 32386379
+
+Test: 2
+./naive_counter 128
+Counter finish in 6236.986000 ms
+The value of counter should be 2147483648
+The value of counter is 55861386
+
+Test: 3
+./naive_counter 128
+Counter finish in 7311.006000 ms
+The value of counter should be 2147483648
+The value of counter is 46204416
+
+Test: 4
+./naive_counter 128
+Counter finish in 7071.287000 ms
+The value of counter should be 2147483648
+The value of counter is 36907092
+
+Test: 5
+./naive_counter 128
+Counter finish in 7184.682000 ms
+The value of counter should be 2147483648
+The value of counter is 33667905
+
+Test: 6
+./naive_counter 128
+Counter finish in 7155.344000 ms
+The value of counter should be 2147483648
+The value of counter is 34873307
+
+Test: 7
+./naive_counter 128
+Counter finish in 7092.505000 ms
+The value of counter should be 2147483648
+The value of counter is 41436805
+
+Test: 8
+./naive_counter 128
+Counter finish in 6394.588000 ms
+The value of counter should be 2147483648
+The value of counter is 37179925
+
+Test: 9
+./naive_counter 128
+Counter finish in 7100.366000 ms
+The value of counter should be 2147483648
+The value of counter is 33507480
+
+Test: 10
+./naive_counter 128
+Counter finish in 7031.555000 ms
+The value of counter should be 2147483648
+The value of counter is 38533250
+
+-----------------------NAIVE COUNTER PLUS---------------------
+
+------------Test: NC+ 1 -----------
+
+Test: 1
+./naive_counter_plus 1
+Counter finish in 289.338000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 2
+./naive_counter_plus 1
+Counter finish in 291.277000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 3
+./naive_counter_plus 1
+Counter finish in 281.796000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 4
+./naive_counter_plus 1
+Counter finish in 284.839000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 5
+./naive_counter_plus 1
+Counter finish in 287.416000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 6
+./naive_counter_plus 1
+Counter finish in 289.510000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 7
+./naive_counter_plus 1
+Counter finish in 291.911000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 8
+./naive_counter_plus 1
+Counter finish in 286.910000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 9
+./naive_counter_plus 1
+Counter finish in 280.800000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 10
+./naive_counter_plus 1
+Counter finish in 285.956000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+------------Test: NC+ 2 -----------
+
+Test: 1
+./naive_counter_plus 2
+Counter finish in 1581.878000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 2
+./naive_counter_plus 2
+Counter finish in 1631.791000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 3
+./naive_counter_plus 2
+Counter finish in 1674.757000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 4
+./naive_counter_plus 2
+Counter finish in 1574.070000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 5
+./naive_counter_plus 2
+Counter finish in 1624.792000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 6
+./naive_counter_plus 2
+Counter finish in 1359.977000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 7
+./naive_counter_plus 2
+Counter finish in 1358.745000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 8
+./naive_counter_plus 2
+Counter finish in 1618.991000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 9
+./naive_counter_plus 2
+Counter finish in 1607.102000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 10
+./naive_counter_plus 2
+Counter finish in 1658.991000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+------------Test: NC+ 4 -----------
+
+Test: 1
+./naive_counter_plus 4
+Counter finish in 3614.251000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 2
+./naive_counter_plus 4
+Counter finish in 3564.141000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 3
+./naive_counter_plus 4
+Counter finish in 3676.810000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 4
+./naive_counter_plus 4
+Counter finish in 3671.546000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 5
+./naive_counter_plus 4
+Counter finish in 3626.435000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 6
+./naive_counter_plus 4
+Counter finish in 3587.485000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 7
+./naive_counter_plus 4
+Counter finish in 3645.872000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 8
+./naive_counter_plus 4
+Counter finish in 3707.360000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 9
+./naive_counter_plus 4
+Counter finish in 3513.551000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 10
+./naive_counter_plus 4
+Counter finish in 3573.098000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+------------Test: NC+ 8 -----------
+
+Test: 1
+./naive_counter_plus 8
+Counter finish in 11651.180000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 2
+./naive_counter_plus 8
+Counter finish in 11547.523000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 3
+./naive_counter_plus 8
+Counter finish in 11279.264000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 4
+./naive_counter_plus 8
+Counter finish in 11446.202000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 5
+./naive_counter_plus 8
+Counter finish in 11584.002000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 6
+./naive_counter_plus 8
+Counter finish in 11379.154000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 7
+./naive_counter_plus 8
+Counter finish in 10413.237000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 8
+./naive_counter_plus 8
+Counter finish in 11464.090000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 9
+./naive_counter_plus 8
+Counter finish in 11427.925000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 10
+./naive_counter_plus 8
+Counter finish in 11437.717000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+------------Test: NC+ 16 -----------
+
+Test: 1
+./naive_counter_plus 16
+Counter finish in 23556.585000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 2
+./naive_counter_plus 16
+Counter finish in 23262.499000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 3
+./naive_counter_plus 16
+Counter finish in 23375.795000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 4
+./naive_counter_plus 16
+Counter finish in 23422.672000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 5
+./naive_counter_plus 16
+Counter finish in 23548.705000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 6
+./naive_counter_plus 16
+Counter finish in 23391.808000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 7
+./naive_counter_plus 16
+Counter finish in 23265.492000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 8
+./naive_counter_plus 16
+Counter finish in 23076.495000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 9
+./naive_counter_plus 16
+Counter finish in 23107.601000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 10
+./naive_counter_plus 16
+Counter finish in 23391.813000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+------------Test: NC+ 32 -----------
+
+Test: 1
+./naive_counter_plus 32
+Counter finish in 46744.757000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 2
+./naive_counter_plus 32
+Counter finish in 46874.548000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 3
+./naive_counter_plus 32
+Counter finish in 46249.728000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 4
+./naive_counter_plus 32
+Counter finish in 46598.785000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 5
+./naive_counter_plus 32
+Counter finish in 41880.183000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 6
+./naive_counter_plus 32
+Counter finish in 46765.689000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 7
+./naive_counter_plus 32
+Counter finish in 46547.924000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 8
+./naive_counter_plus 32
+Counter finish in 46757.122000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 9
+./naive_counter_plus 32
+Counter finish in 46660.741000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 10
+./naive_counter_plus 32
+Counter finish in 46864.369000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+------------Test: NC+ 64 -----------
+
+Test: 1
+./naive_counter_plus 64
+Counter finish in 93489.676000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 2
+./naive_counter_plus 64
+Counter finish in 94674.199000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 3
+./naive_counter_plus 64
+Counter finish in 94161.464000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 4
+./naive_counter_plus 64
+Counter finish in 84909.721000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 5
+./naive_counter_plus 64
+Counter finish in 93224.543000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 6
+./naive_counter_plus 64
+Counter finish in 94609.812000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 7
+./naive_counter_plus 64
+Counter finish in 94098.352000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 8
+./naive_counter_plus 64
+Counter finish in 93192.762000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 9
+./naive_counter_plus 64
+Counter finish in 93258.252000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 10
+./naive_counter_plus 64
+Counter finish in 93565.570000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+------------Test: NC+ 128 -----------
+
+Test: 1
+./naive_counter_plus 128
+Counter finish in 187376.705000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 2
+./naive_counter_plus 128
+Counter finish in 185691.343000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 3
+./naive_counter_plus 128
+Counter finish in 189453.632000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 4
+./naive_counter_plus 128
+Counter finish in 189197.952000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 5
+./naive_counter_plus 128
+Counter finish in 187140.994000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 6
+./naive_counter_plus 128
+Counter finish in 189089.521000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 7
+./naive_counter_plus 128
+Counter finish in 186984.788000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 8
+./naive_counter_plus 128
+Counter finish in 184391.023000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 9
+./naive_counter_plus 128
+Counter finish in 187448.066000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 10
+./naive_counter_plus 128
+Counter finish in 186254.212000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+-----------------------ATOMIC COUNTER---------------------
+
+------------Test: AC 1 -----------
+
+Test: 1
+./atomic_counter 1
+Counter finish in 164.911000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 2
+./atomic_counter 1
+Counter finish in 91.900000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 3
+./atomic_counter 1
+Counter finish in 91.904000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 4
+./atomic_counter 1
+Counter finish in 91.901000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 5
+./atomic_counter 1
+Counter finish in 91.915000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 6
+./atomic_counter 1
+Counter finish in 91.902000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 7
+./atomic_counter 1
+Counter finish in 91.912000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 8
+./atomic_counter 1
+Counter finish in 91.996000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 9
+./atomic_counter 1
+Counter finish in 92.009000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 10
+./atomic_counter 1
+Counter finish in 91.914000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+------------Test: AC 2 -----------
+
+Test: 1
+./atomic_counter 2
+Counter finish in 695.431000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 2
+./atomic_counter 2
+Counter finish in 634.035000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 3
+./atomic_counter 2
+Counter finish in 494.925000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 4
+./atomic_counter 2
+Counter finish in 659.264000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 5
+./atomic_counter 2
+Counter finish in 624.627000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 6
+./atomic_counter 2
+Counter finish in 633.402000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 7
+./atomic_counter 2
+Counter finish in 710.143000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 8
+./atomic_counter 2
+Counter finish in 586.945000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 9
+./atomic_counter 2
+Counter finish in 494.473000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 10
+./atomic_counter 2
+Counter finish in 597.943000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+------------Test: AC 4 -----------
+
+Test: 1
+./atomic_counter 4
+Counter finish in 1557.972000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 2
+./atomic_counter 4
+Counter finish in 1240.286000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 3
+./atomic_counter 4
+Counter finish in 1296.776000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 4
+./atomic_counter 4
+Counter finish in 1351.590000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 5
+./atomic_counter 4
+Counter finish in 1554.900000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 6
+./atomic_counter 4
+Counter finish in 1329.941000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 7
+./atomic_counter 4
+Counter finish in 1300.827000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 8
+./atomic_counter 4
+Counter finish in 1513.954000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 9
+./atomic_counter 4
+Counter finish in 1555.044000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 10
+./atomic_counter 4
+Counter finish in 1397.395000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+------------Test: AC 8 -----------
+
+Test: 1
+./atomic_counter 8
+Counter finish in 2688.774000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 2
+./atomic_counter 8
+Counter finish in 3097.861000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 3
+./atomic_counter 8
+Counter finish in 2608.973000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 4
+./atomic_counter 8
+Counter finish in 3134.313000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 5
+./atomic_counter 8
+Counter finish in 3090.111000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 6
+./atomic_counter 8
+Counter finish in 3030.764000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 7
+./atomic_counter 8
+Counter finish in 3051.387000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 8
+./atomic_counter 8
+Counter finish in 2633.003000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 9
+./atomic_counter 8
+Counter finish in 2672.889000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 10
+./atomic_counter 8
+Counter finish in 2674.925000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+------------Test: AC 16 -----------
+
+Test: 1
+./atomic_counter 16
+Counter finish in 6232.933000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 2
+./atomic_counter 16
+Counter finish in 6217.280000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 3
+./atomic_counter 16
+Counter finish in 6252.785000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 4
+./atomic_counter 16
+Counter finish in 5248.160000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 5
+./atomic_counter 16
+Counter finish in 6182.268000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 6
+./atomic_counter 16
+Counter finish in 6278.268000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 7
+./atomic_counter 16
+Counter finish in 6270.213000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 8
+./atomic_counter 16
+Counter finish in 6225.609000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 9
+./atomic_counter 16
+Counter finish in 5303.942000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 10
+./atomic_counter 16
+Counter finish in 5263.751000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+------------Test: AC 32 -----------
+
+Test: 1
+./atomic_counter 32
+Counter finish in 12489.123000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 2
+./atomic_counter 32
+Counter finish in 12511.101000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 3
+./atomic_counter 32
+Counter finish in 10924.080000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 4
+./atomic_counter 32
+Counter finish in 12457.293000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 5
+./atomic_counter 32
+Counter finish in 10648.520000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 6
+./atomic_counter 32
+Counter finish in 12511.943000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 7
+./atomic_counter 32
+Counter finish in 12466.184000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 8
+./atomic_counter 32
+Counter finish in 10495.285000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 9
+./atomic_counter 32
+Counter finish in 10436.880000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 10
+./atomic_counter 32
+Counter finish in 10589.006000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+------------Test: AC 64 -----------
+
+Test: 1
+./atomic_counter 64
+Counter finish in 21167.500000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 2
+./atomic_counter 64
+Counter finish in 20881.918000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 3
+./atomic_counter 64
+Counter finish in 24976.073000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 4
+./atomic_counter 64
+Counter finish in 25085.164000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 5
+./atomic_counter 64
+Counter finish in 20578.760000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 6
+./atomic_counter 64
+Counter finish in 25051.043000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 7
+./atomic_counter 64
+Counter finish in 25071.033000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 8
+./atomic_counter 64
+Counter finish in 25101.465000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 9
+./atomic_counter 64
+Counter finish in 25205.870000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 10
+./atomic_counter 64
+Counter finish in 25174.061000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+------------Test: AC 128 -----------
+
+Test: 1
+./atomic_counter 128
+Counter finish in 42100.051000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 2
+./atomic_counter 128
+Counter finish in 42848.468000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 3
+./atomic_counter 128
+Counter finish in 50470.565000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 4
+./atomic_counter 128
+Counter finish in 42586.759000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 5
+./atomic_counter 128
+Counter finish in 42073.110000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 6
+./atomic_counter 128
+Counter finish in 50207.824000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 7
+./atomic_counter 128
+Counter finish in 41600.566000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 8
+./atomic_counter 128
+Counter finish in 50067.977000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 9
+./atomic_counter 128
+Counter finish in 42280.611000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 10
+./atomic_counter 128
+Counter finish in 50022.326000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+-----------------------SCALABLE COUNTER---------------------
+
+------------Test: SC 1 -----------
+
+Test: 1
+./scalable_counter 1
+Counter finish in 28.833000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 2
+./scalable_counter 1
+Counter finish in 29.076000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 3
+./scalable_counter 1
+Counter finish in 28.536000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 4
+./scalable_counter 1
+Counter finish in 28.813000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 5
+./scalable_counter 1
+Counter finish in 28.839000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 6
+./scalable_counter 1
+Counter finish in 28.784000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 7
+./scalable_counter 1
+Counter finish in 28.693000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 8
+./scalable_counter 1
+Counter finish in 28.776000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 9
+./scalable_counter 1
+Counter finish in 28.789000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+Test: 10
+./scalable_counter 1
+Counter finish in 28.689000 ms
+The value of counter should be 16777216
+The value of counter is 16777216
+
+------------Test: SC 2 -----------
+
+Test: 1
+./scalable_counter 2
+Counter finish in 45.823000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 2
+./scalable_counter 2
+Counter finish in 38.458000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 3
+./scalable_counter 2
+Counter finish in 38.135000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 4
+./scalable_counter 2
+Counter finish in 28.760000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 5
+./scalable_counter 2
+Counter finish in 38.707000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 6
+./scalable_counter 2
+Counter finish in 28.853000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 7
+./scalable_counter 2
+Counter finish in 32.354000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 8
+./scalable_counter 2
+Counter finish in 28.751000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 9
+./scalable_counter 2
+Counter finish in 45.562000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+Test: 10
+./scalable_counter 2
+Counter finish in 29.169000 ms
+The value of counter should be 33554432
+The value of counter is 33554432
+
+------------Test: SC 4 -----------
+
+Test: 1
+./scalable_counter 4
+Counter finish in 45.858000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 2
+./scalable_counter 4
+Counter finish in 40.966000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 3
+./scalable_counter 4
+Counter finish in 40.301000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 4
+./scalable_counter 4
+Counter finish in 42.598000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 5
+./scalable_counter 4
+Counter finish in 45.294000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 6
+./scalable_counter 4
+Counter finish in 33.393000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 7
+./scalable_counter 4
+Counter finish in 45.309000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 8
+./scalable_counter 4
+Counter finish in 45.469000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 9
+./scalable_counter 4
+Counter finish in 45.801000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+Test: 10
+./scalable_counter 4
+Counter finish in 45.920000 ms
+The value of counter should be 67108864
+The value of counter is 67108864
+
+------------Test: SC 8 -----------
+
+Test: 1
+./scalable_counter 8
+Counter finish in 48.682000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 2
+./scalable_counter 8
+Counter finish in 51.602000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 3
+./scalable_counter 8
+Counter finish in 49.907000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 4
+./scalable_counter 8
+Counter finish in 50.797000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 5
+./scalable_counter 8
+Counter finish in 55.129000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 6
+./scalable_counter 8
+Counter finish in 53.711000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 7
+./scalable_counter 8
+Counter finish in 49.533000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 8
+./scalable_counter 8
+Counter finish in 47.942000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 9
+./scalable_counter 8
+Counter finish in 46.212000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+Test: 10
+./scalable_counter 8
+Counter finish in 46.955000 ms
+The value of counter should be 134217728
+The value of counter is 134217728
+
+------------Test: SC 16 -----------
+
+Test: 1
+./scalable_counter 16
+Counter finish in 100.215000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 2
+./scalable_counter 16
+Counter finish in 101.798000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 3
+./scalable_counter 16
+Counter finish in 98.152000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 4
+./scalable_counter 16
+Counter finish in 98.415000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 5
+./scalable_counter 16
+Counter finish in 99.907000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 6
+./scalable_counter 16
+Counter finish in 107.815000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 7
+./scalable_counter 16
+Counter finish in 103.914000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 8
+./scalable_counter 16
+Counter finish in 107.214000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 9
+./scalable_counter 16
+Counter finish in 110.839000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+Test: 10
+./scalable_counter 16
+Counter finish in 98.618000 ms
+The value of counter should be 268435456
+The value of counter is 268435456
+
+------------Test: SC 32 -----------
+
+Test: 1
+./scalable_counter 32
+Counter finish in 192.135000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 2
+./scalable_counter 32
+Counter finish in 184.995000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 3
+./scalable_counter 32
+Counter finish in 189.510000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 4
+./scalable_counter 32
+Counter finish in 191.826000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 5
+./scalable_counter 32
+Counter finish in 189.446000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 6
+./scalable_counter 32
+Counter finish in 190.147000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 7
+./scalable_counter 32
+Counter finish in 188.731000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 8
+./scalable_counter 32
+Counter finish in 185.729000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 9
+./scalable_counter 32
+Counter finish in 191.870000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+Test: 10
+./scalable_counter 32
+Counter finish in 190.717000 ms
+The value of counter should be 536870912
+The value of counter is 536870912
+
+------------Test: SC 64 -----------
+
+Test: 1
+./scalable_counter 64
+Counter finish in 395.777000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 2
+./scalable_counter 64
+Counter finish in 370.723000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 3
+./scalable_counter 64
+Counter finish in 368.027000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 4
+./scalable_counter 64
+Counter finish in 371.847000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 5
+./scalable_counter 64
+Counter finish in 370.699000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 6
+./scalable_counter 64
+Counter finish in 375.853000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 7
+./scalable_counter 64
+Counter finish in 388.996000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 8
+./scalable_counter 64
+Counter finish in 381.555000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 9
+./scalable_counter 64
+Counter finish in 370.707000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+Test: 10
+./scalable_counter 64
+Counter finish in 376.905000 ms
+The value of counter should be 1073741824
+The value of counter is 1073741824
+
+------------Test: SC 128 -----------
+
+Test: 1
+./scalable_counter 128
+Counter finish in 735.318000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 2
+./scalable_counter 128
+Counter finish in 764.238000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 3
+./scalable_counter 128
+Counter finish in 739.046000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 4
+./scalable_counter 128
+Counter finish in 741.161000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 5
+./scalable_counter 128
+Counter finish in 754.471000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 6
+./scalable_counter 128
+Counter finish in 748.562000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 7
+./scalable_counter 128
+Counter finish in 744.788000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 8
+./scalable_counter 128
+Counter finish in 744.362000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 9
+./scalable_counter 128
+Counter finish in 761.598000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
+
+Test: 10
+./scalable_counter 128
+Counter finish in 737.246000 ms
+The value of counter should be 2147483648
+The value of counter is 2147483648
