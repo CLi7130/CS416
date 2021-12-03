@@ -28,18 +28,34 @@
 
 char diskfile_path[PATH_MAX];
 
+bitmap_t ibmap = NULL;
+bitmap_t dbmap = NULL;
+
+struct superblock *superblock;
+struct inode *inodes[MAX_INUM+2];
+struct dirent *dirent;
+
+
 // Declare your in-memory data structures here
 
 /* 
  * Get available inode number from bitmap
  */
 int get_avail_ino() {
-
-	// Step 1: Read inode bitmap from disk
 	
-	// Step 2: Traverse inode bitmap to find an available slot
+	// Step 1: Read inode bitmap from disk
+	//superblock->i_bitmap_blk is the start address of inode bitmap
+	bio_read(superblock->i_bitmap_blk, ibmap);
 
-	// Step 3: Update inode bitmap and write to disk 
+	// Step 2: Traverse inode bitmap to find an available slot
+	for(int i = 0; i < MAX_INUM; i++){
+		if(get_bitmap(ibmap, i) == 0){
+			// Step 3: Update inode bitmap and write to disk
+			set_bitmap(ibmap, i);
+			bio_write(superblock->i_bitmap_blk, ibmap);
+			return i;
+		}
+	}
 
 	return 0;
 }
@@ -50,16 +66,24 @@ int get_avail_ino() {
 int get_avail_blkno() {
 
 	// Step 1: Read data block bitmap from disk
-	
-	// Step 2: Traverse data block bitmap to find an available slot
+	//superblock->d_bitmap_blk is the start address of data block bitmap
+	bio_read(superblock->d_bitmap_blk, dbmap);
 
-	// Step 3: Update data block bitmap and write to disk 
+	// Step 2: Traverse data block bitmap to find an available slot
+	for(int i = 0; i < MAX_DNUM; i++){
+		if(get_bitmap(dbmap, i) == 0){
+			// Step 3: Update data block bitmap and write to disk
+			set_bitmap(dbmap, i);
+			bio_write(superblock->d_bitmap_blk, dbmap);
+			return i;
+		}
+	}
 
 	return 0;
 }
 
 /* 
- * inode operations
+ * inode operationsx
  */
 int readi(uint16_t ino, struct inode *inode) {
 
