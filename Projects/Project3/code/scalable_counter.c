@@ -39,7 +39,7 @@ void *countFunct(){
     if(local_counter > 0){
         atomic_fetch_add(&global_counter, local_counter);
     }
-
+    
 }
 
 
