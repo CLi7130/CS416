@@ -86,23 +86,92 @@ int get_avail_blkno() {
  * inode operationsx
  */
 int readi(uint16_t ino, struct inode *inode) {
+	//uint16_t is an unsigned 16 bit integer
 
-  // Step 1: Get the inode's on-disk block number
+  	// Step 1: Get the inode's on-disk block number
+	// i_start_blk = start address of inode region
+	int offset = BLOCK_SIZE/sizeof(struct inode);
+	int iBlockNum = superblock->i_start_blk + ino/offset;
+	struct inode *iBlock = malloc(BLOCK_SIZE);
+	int status = bio_read(iBlockNum, iBlock);
 
-  // Step 2: Get offset of the inode in the inode on-disk block
+  	// Step 2: Get offset of the inode in the inode on-disk block
+	int iOffsetInBlk = ino % offset;
 
-  // Step 3: Read the block from disk and then copy into inode structure
+  	// Step 3: Read the block from disk and then copy into inode structure
+	inodes[ino - 1]->ino = iBlock[iOffsetInBlk].ino;
+	inodes[ino - 1]->valid = iBlock[iOffsetInBlk].valid;
+	inodes[ino - 1]->size = iBlock[iOffsetInBlk].size;
+	inodes[ino - 1]->type = iBlock[iOffsetInBlk].type;
+	inodes[ino - 1]->link = iBlock[iOffsetInBlk].link;
+	
+	for(int i = 0; i < DIRECT_PTRS;i++){
 
-	return 0;
+		inodes[ino - 1]->direct_ptr[i] = iBlock[iOffsetInBlk].direct_ptr[i];
+		if(i < INDIRECT_PTRS){
+
+			inodes[ino - 1]->indirect_ptr[i] = iBlock[iOffsetInBlk].indirect_ptr[i];
+			
+		}
+
+	}
+	inodes[ino - 1]->vstat.st_dev = iBlock[iOffsetInBlk].vstat.st_dev;
+	inodes[ino - 1]->vstat.st_ino = iBlock[iOffsetInBlk].vstat.st_ino;
+	inodes[ino - 1]->vstat.st_mode = iBlock[iOffsetInBlk].vstat.st_mode;
+	inodes[ino - 1]->vstat.st_nlink = iBlock[iOffsetInBlk].vstat.st_nlink;
+	inodes[ino - 1]->vstat.st_uid = iBlock[iOffsetInBlk].vstat.st_uid;
+	inodes[ino - 1]->vstat.st_gid = iBlock[iOffsetInBlk].vstat.st_gid;
+	inodes[ino - 1]->vstat.st_atime = iBlock[iOffsetInBlk].vstat.st_atime;
+	inodes[ino - 1]->vstat.st_mtime = iBlock[iOffsetInBlk].vstat.st_mtime;
+
+	free(iBlock);
+	iBlock = NULL;
+	
+	return status;
 }
+
 
 int writei(uint16_t ino, struct inode *inode) {
 
 	// Step 1: Get the block number where this inode resides on disk
-	
+	int offset = BLOCK_SIZE/sizeof(struct inode);
+	int iBlockNum = superblock->i_start_blk + ino/offset;
+	struct inode *iBlock = malloc(BLOCK_SIZE);
+	int status = bio_read(iBlockNum, iBlock);
+
 	// Step 2: Get the offset in the block where this inode resides on disk
+	int iOffsetInBlk = ino % offset;
 
 	// Step 3: Write inode to disk 
+	inodes[ino - 1]->ino = iBlock[iOffsetInBlk].ino;
+	inodes[ino - 1]->valid = iBlock[iOffsetInBlk].valid;
+	inodes[ino - 1]->size = iBlock[iOffsetInBlk].size;
+	inodes[ino - 1]->type = iBlock[iOffsetInBlk].type;
+	inodes[ino - 1]->link = iBlock[iOffsetInBlk].link;
+	
+	for(int i = 0; i < DIRECT_PTRS;i++){
+
+		inodes[ino - 1]->direct_ptr[i] = iBlock[iOffsetInBlk].direct_ptr[i];
+		if(i < INDIRECT_PTRS){
+
+			inodes[ino - 1]->indirect_ptr[i] = iBlock[iOffsetInBlk].indirect_ptr[i];
+			
+		}
+
+	}
+	inodes[ino - 1]->vstat.st_dev = iBlock[iOffsetInBlk].vstat.st_dev;
+	inodes[ino - 1]->vstat.st_ino = iBlock[iOffsetInBlk].vstat.st_ino;
+	inodes[ino - 1]->vstat.st_mode = iBlock[iOffsetInBlk].vstat.st_mode;
+	inodes[ino - 1]->vstat.st_nlink = iBlock[iOffsetInBlk].vstat.st_nlink;
+	inodes[ino - 1]->vstat.st_uid = iBlock[iOffsetInBlk].vstat.st_uid;
+	inodes[ino - 1]->vstat.st_gid = iBlock[iOffsetInBlk].vstat.st_gid;
+	inodes[ino - 1]->vstat.st_atime = iBlock[iOffsetInBlk].vstat.st_atime;
+	inodes[ino - 1]->vstat.st_mtime = iBlock[iOffsetInBlk].vstat.st_mtime;
+
+	free(iBlock);
+	iBlock = NULL;
+	
+	return status;
 
 	return 0;
 }

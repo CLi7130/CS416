@@ -20,6 +20,9 @@
 #define MAX_INUM 1024
 #define MAX_DNUM 16384
 
+#define DIRECT_PTRS 16
+#define INDIRECT_PTRS 8
+
 
 struct superblock {
 	uint32_t	magic_num;			/* magic number */
