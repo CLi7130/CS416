@@ -88,7 +88,8 @@ int init_FS_globals(){
     DBLOCK_BMAP = (bitmap_t) malloc(MAX_DNUM / 8);
 
     if(INODE_BMAP == NULL || DBLOCK_BMAP == NULL){
-
+        perror("INIT_FS_GLOBALS: UNABLE TO MALLOC BMAPS\n");
+        exit(EXIT_FAILURE);
     }
 
 }
@@ -134,14 +135,15 @@ int get_avail_ino() {
 
 	// Step 2: Traverse inode bitmap to find an available slot
 
-    int inode_num = -1;
+    int inode_num = 0;
     //iterate over inodes
     while(inode_num < MAX_INUM){
-        inode_num++;
+        
         //bitmap is available/unused if it has 0 value
         if(get_bitmap(INODE_BMAP, inode_num) == 0){
             break;
         } 
+        inode_num++;
     }
     //no available inodes?
     if(inode_num == ERROR_VALUE){
@@ -522,21 +524,22 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
     bio_write(SBLOCK->d_bitmap_blk, (void*) DBLOCK_BMAP);
 
     //get next invalid direct ptr
-    int invalid_ptr_index = -1;
+    int invalid_ptr_index = 0;
     while(invalid_ptr_index < DIRECT_PTRS){
-        invalid_ptr_index++;
+        
 
         if(dir_inode.direct_ptr[invalid_ptr_index] == ERROR_VALUE){
             //not allocated, use this index
             break;
         }
+        invalid_ptr_index++;
     }
     dir_inode.direct_ptr[invalid_ptr_index] = new_dir_block_num;
 
     //allocate and zero out space
     struct dirent* temp_dirent = (struct dirent*)calloc(sizeof(struct(dirent)),
                                                          sizeof(struct dirent));
-    temp_dirent->valid = ERROR_VALUE; //mark as invalid
+    temp_dirent->valid = 0; //mark as invalid
     temp_dirent->ino = 0; //default values for ino and len
     temp_dirent->len = 0;
 
@@ -573,21 +576,74 @@ int dir_remove(struct inode dir_inode, const char *fname, size_t name_len) {
     }
 	// Step 1: Read dir_inode's data block and checks each directory entry of dir_inode
 
-    int dir_ptr_index = -1; //direct pointers
-    int dirent_ptr_index = -1; //dirent pointers
+    int dir_ptr_index = 0; //direct pointers
+    int dirent_ptr_index = 0; //dirent pointers
+    struct dirent* dir_block;
+    int exitFlag = 0;
+
+    //dirent to write to disk if needed
+    struct dirent* temp_dirent = (struct dirent*) calloc(sizeof(struct(dirent)),
+                                                    sizeof(struct(dirent)));
+    temp_dirent->ino = 0;
+    temp_dirent->valid = 0;
+    temp_dirent->len = 0;
+    
+
 
     while(dir_ptr_index < DIRECT_PTRS){
         if(dir_inode.direct_ptr[dir_ptr_index] != ERROR_VALUE){
             //invalid block
+            void* temp_block = (void*) malloc(BLOCK_SIZE);
+            bio_read(SBLOCK->d_start_blk 
+                        + dir_inode.direct_ptr[dir_ptr_index],
+                        temp_block);
+            dir_block = (struct dirent*) temp_block;
 
+            // Step 2: Check if fname exist
+            //iterate through dirents in block
+            while(dirent_ptr_index < DIRENTS_PER_BLOCK){
+                if(dir_block[dirent_ptr_index].valid == 1
+                    && strncmp(dir_block[dirent_ptr_index].name, fname, name_len) == 0){
+                    exitFlag = 1;
+                    //block is valid and name matches
+
+                	// Step 3: If exist, then remove it from dir_inode's data block and write to disk
+
+                    //write dirent to disk
+                    
+                    void* write_block = (void*) malloc(BLOCK_SIZE);
+
+                    bio_read(SBLOCK->d_start_blk 
+                                + dir_inode.direct_ptr[dir_ptr_index],
+                                 write_block);
+                    struct dirent* temp_dir_block = (struct dirent*) 
+                                                    write_block;
+                    if(temp_dir_block == NULL){
+                        perror("DIR_REMOVE: COULD NOT READ DATA BLOCK\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    temp_dir_block[dirent_ptr_index] = *write_block;
+
+
+                    //write to disk
+                    bio_write(SBLOCK->d_start_blk 
+                                + dir_inode.direct_ptr[dir_ptr_index],
+                                 (void*) temp_dir_block);
+                    
+                    free(write_block);
+                    free(temp_dirent);
+                    return SUCCESS;
+                }
+
+            }
         }
+
     }
-	
-	// Step 2: Check if fname exist
-
-	// Step 3: If exist, then remove it from dir_inode's data block and write to disk
-
-	return 0;
+	if(exitFlag == 0){
+        //never found dir to remove?
+        free(temp_dirent);
+    }
+	return ERROR_VALUE;
 }
 
 /* 
@@ -598,7 +654,68 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	// Step 1: Resolve the path name, walk through path, and finally, find its inode.
 	// Note: You could either implement it in a iterative way or recursive way
 
-	return 0;
+    //use strtok? - separate by / character
+    if(DEBUG){
+        printf("IN GET_NODE_BY_PATH\n");
+    }
+    char* path_copy = strdup(path);
+
+    //get inode information given inode number
+    readi(ino, inode);
+
+    //get next token in path separated by / character
+    char* path_token = strtok(path_copy, "/", &path_copy);
+
+    if(DEBUG){
+        printf("GET_NODE_BY_PATH: CURRENT TOKEN: %s\n", path_token);
+    }
+
+    //if token is NULL, we're at the end of the path
+    //we can check the inode here to determine if we've found the
+    //desired inode (this is based on the inode's valid status)
+
+    if(path_token == NULL){
+        if(inode->valid == 0){
+            //inode is valid, this is the inode we were looking for
+            return 0;
+        }
+        //inode node valid, inode doesn't exist by path
+        return ERROR_VALUE;
+    }
+
+    //have to check remaining path/tokens for the inode
+    //if we have path remaining, we have to be in a directory.
+    //check that the current token of the path is in a dirent entry in the
+    //directory's data blocks.
+
+    struct dirent* current_dirent = (struct dirent*) 
+                                    malloc(sizeof(struct dirent));
+    
+    int dir_status = dir_find(ino, 
+                            path_token, 
+                            strlen(path_token) + 1, 
+                            current_dirent);
+    /*
+        if dirent does not exist for this path, there shouldn't be a corresponding inode, so we return an error.
+    */
+
+    if(dir_status == ERROR_VALUE){
+        if(DEBUG){
+            perror("GET_NODE_BY_PATH: NO DIRENT FOUND FOR TOKEN\n");
+        }
+        free(current_dirent);
+        return ERROR_VALUE;
+    }
+
+    /*
+        If dirent is found, recurse on the found dirent
+    */
+
+    int next_inode = current_dirent->inode;
+    free(current_dirent);
+    retVal = get_node_by_path(path_copy, next_inode, inode);
+
+	return retVal;
 }
 
 /* 
