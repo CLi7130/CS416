@@ -23,6 +23,7 @@
 #include <sys/time.h>
 #include <libgen.h>
 #include <limits.h>
+#include <math.h>
 
 #include "block.h"
 #include "tfs.h"
@@ -44,6 +45,9 @@ int INODE_TABLE_BLOCK_SIZE;
 int BLOCK_SIZE_IN_CHARS;
 int INODES_PER_BLOCK;
 int DIRENTS_PER_BLOCK;
+
+int check_SBLOCK();
+int init_FS_globals();
 
 /**
  * Helper function to initialize memory for superblock, bitmaps, 
@@ -104,10 +108,8 @@ int get_avail_ino() {
 	
 	// Step 1: Read inode bitmap from disk
     void* inode_buffer = (void*) malloc(BLOCK_SIZE);
-    if(bio_read(SBLOCK->i_bitmap_blk, inode_buffer) == NULL){
-        perror("GET_AVAIL_INO: BIO_READ FAILED\n");
-        exit(EXIT_FAILURE);
-    }
+    bio_read(SBLOCK->i_bitmap_blk, inode_buffer);
+
 
     //check bitmap copied into inode_buffer
     if(inode_buffer == NULL){
@@ -146,7 +148,7 @@ int get_avail_ino() {
     while(iterator < INODE_BITMAP_BLOCK_SIZE){
         //write to disk
         bio_write(SBLOCK->i_bitmap_blk + iterator,
-                  INODE_BMAP[iterator * BLOCK_SIZE_IN_CHARS]);
+                  INODE_BMAP[(int) (iterator * BLOCK_SIZE_IN_CHARS)]);
     }
 
     //free(inode_buffer);
@@ -168,10 +170,7 @@ int get_avail_blkno() {
     check_SBLOCK();
 
     void* dblock_buffer = (void*) malloc(BLOCK_SIZE);
-    if(bio_read(SBLOCK->d_bitmap_blk, dblock_buffer) == NULL){
-        perror("GET_AVAIL_BLKNO: BIO_READ FAILED\n");
-        exit(EXIT_FAILURE);
-    }
+    bio_read(SBLOCK->d_bitmap_blk, dblock_buffer);
 
     //check bitmap copied into buffer
     if(dblock_buffer == NULL){
@@ -240,21 +239,19 @@ int readi(uint16_t ino, struct inode *inode) {
     }
 
     //error condition for success of readi
-    int retVal = 0;
+    //int retVal = 0;
 
     //read from disk
-    if((retVal = bio_read(block_num, buffer_block)) == NULL){
-        perror("FAILURE TO READ INODE FROM INODE TABLE\n");
-        exit(EXIT_FAILURE);
-    }
+    bio_read(block_num, buffer_block);
+
 
     struct inode* inode_block = (struct inode*) buffer_block;
 
     if(DEBUG){
         printf("READI: READING INTO INODE:\n"
-                + "ino: %d, "
-                + "block number: %d "
-                + "offset: %d\n",
+                "ino: %d, "
+                "block number: %d "
+                "offset: %d\n",
                 ino,
                 block_num,
                 offset);
@@ -265,7 +262,7 @@ int readi(uint16_t ino, struct inode *inode) {
     *inode = inode_block[offset];
     free(buffer_block);
 
-	return retVal;
+	return 1;
 }
 
 
@@ -286,13 +283,11 @@ int writei(uint16_t ino, struct inode *inode) {
     void* inode_buffer = (void*) malloc(BLOCK_SIZE);
 
     //error condition for success of writei
-    int retVal = 0;
+    //int retVal = 0;
 
     //check to make sure we've read correctly
-    if((retVal = bio_read(block_num, inode_buffer)) == NULL){
-        perror("WRITEI: UNABLE TO READ INODE FROM TABLE\n");
-        exit(EXIT_FAILURE);
-    }
+    bio_read(block_num, inode_buffer);
+
 
     //update access time
     //st_mtime = time of last modification to inode
@@ -302,9 +297,9 @@ int writei(uint16_t ino, struct inode *inode) {
 
     if(DEBUG){
         printf("WRITEI: WRITING INTO INODE:\n"
-                + "ino: %d, "
-                + "block number: %d "
-                + "offset: %d\n",
+                "ino: %d, "
+                "block number: %d "
+                "offset: %d\n",
                 ino,
                 block_num,
                 offset);
@@ -321,7 +316,7 @@ int writei(uint16_t ino, struct inode *inode) {
     //get rid of temporary block
     free(inode_block);
 
-	return retVal;
+	return 1;
 }
 
 
@@ -368,43 +363,44 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
 
         if(current.direct_ptr[iterator] != ERROR_VALUE){
             bio_read(SBLOCK->d_start_blk + current.direct_ptr[iterator],
-                     inode_buffer);
+                     buffer);
             struct dirent* dir_block = (struct dirent*) buffer;
-            }
-        }
+            
+        
 
         // Step 3: Read directory's data block and check each directory entry.
         //If the name matches, then copy directory entry to dirent structure
 
-        int dir_index = -1;
-        while(dir_index < DIRENTS_PER_BLOCK){
-            dir_index++;
-            
-            //get current dirent
-            struct dirent current_dirent = dir_block[dir_index];
-
-            if(current_dirent.valid == 1){
-                //current dirent is valid
-                //check if name matches what we're looking for
+            int dir_index = -1;
+            while(dir_index < DIRENTS_PER_BLOCK){
+                dir_index++;
                 
-                //use name_len to compare fname and current dirent name
-                //using strncmp
-                int isMatch = strncmp(fname, current_dirent.name, name_len);
-                if(isMatch == 0){
-                    //strncmp returns 0 for match between strings
-                    //match found
-                    //copy directory entry to dirent structure
-                    *dirent = current_dirent;
-                    free(buffer);
-                    retVal = 1;
-                    return retVal;
+                //get current dirent
+                struct dirent current_dirent = dir_block[dir_index];
+
+                if(current_dirent.valid == 1){
+                    //current dirent is valid
+                    //check if name matches what we're looking for
+                    
+                    //use name_len to compare fname and current dirent name
+                    //using strncmp
+                    int isMatch = strncmp(fname, current_dirent.name, name_len);
+                    if(isMatch == 0){
+                        //strncmp returns 0 for match between strings
+                        //match found
+                        //copy directory entry to dirent structure
+                        *dirent = current_dirent;
+                        free(buffer);
+                        retVal = 1;
+                        return retVal;
+                    }
                 }
             }
         }
 
     }
 
-    //should probably never reach here, means dir not found
+    //should probably not reach here, means dir not found
     //perror("AT END OF DIR_FIND, CHECK CODE\n");
     free(buffer);
 	return retVal;
@@ -413,8 +409,28 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
 int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t name_len) {
 
 	// Step 1: Read dir_inode's data block and check each directory entry of dir_inode
+
+    int dir_ptr_index = -1;
+    while (dir_ptr_index < DIRECT_PTRS){
+        dir_ptr_index++;
+
+        if(dir_inode.direct_ptr[dir_ptr_index] != ERROR_VALUE){
+
+            void* temp_dir_block = (void*) malloc(BLOCK_SIZE);
+            bio_read(SBLOCK->d_start_blk 
+                        + dir_inode.direct_ptr[dir_ptr_index], 
+                        temp_dir_block);
+
+            struct dirent *dir_block = (struct dirent*) temp_dir_block;
+
+            // Step 2: Check if fname (directory name) is already used in other entries
+
+            int dir_block_index = -1;
+
+        }
+    }
 	
-	// Step 2: Check if fname (directory name) is already used in other entries
+	
 
 	// Step 3: Add directory entry in dir_inode's data block and write to disk
 
